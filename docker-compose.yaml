@@ -1,0 +1,10 @@
+services:
+  ember:
+    build: .
+    container_name: ember-dev
+    working_dir: /opt/ember-app
+    volumes:
+      - ./ember:/opt/ember-app/ember:rw
+      - ./vault:/vault:rw
+    tty: true
+    stdin_open: true
