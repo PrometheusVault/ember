@@ -63,6 +63,9 @@ Model management tips:
   files, so dropping a model in that directory is usually enough.
 - To pin a specific model for a single session, run `make repl MODEL=/srv/ember/models/foo.gguf`.
 - For a persistent default inside the container, keep using `ENV_VARS="-e LLAMA_CPP_MODEL=..." make dev`.
+- Prefer smaller, lower-quantized models (e.g., `llama-3.2-3b-instruct-q4_0.gguf`) for Raspberry Pis.
+- You can cap generation time with `LLAMA_CPP_TIMEOUT` (default 120s). If llama
+  exceeds this window the REPL reports a timeout instead of hanging.
 
 ## Long-term Plan
 
