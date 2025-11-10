@@ -1,23 +1,23 @@
-# ember/ai.py
-"""
-Placeholders for llama.cpp interaction and documentation context gathering.
-
-These helpers keep the main app loop tidy while making it obvious where the
-final planner/runtime glue will land once llama.cpp bindings are available on
-the Raspberry Pi 5 images.
-"""
+"""llama.cpp integration helpers for the Ember runtime."""
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from dataclasses import dataclass, field
 import logging
 import os
 from pathlib import Path
 import re
-import shutil
-import subprocess
 from textwrap import dedent
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Optional, Sequence
+
+try:  # pragma: no cover - optional dependency in some test environments
+    from llama_cpp import Llama
+except ImportError as exc:  # pragma: no cover
+    Llama = None  # type: ignore[assignment]
+    LLAMA_IMPORT_ERROR = exc
+else:  # pragma: no cover
+    LLAMA_IMPORT_ERROR = None
 
 
 DEFAULT_DOC_PATHS = (
@@ -29,18 +29,28 @@ COMMAND_PATTERN = re.compile(r"\[\[COMMAND:(.*?)\]\]")
 logger = logging.getLogger(__name__)
 
 
-def _default_llama_bin() -> Path:
-    env_path = os.environ.get("LLAMA_CPP_BIN")
-    if env_path:
-        return Path(env_path).expanduser()
-    return Path("/opt/llama.cpp/llama-cli")
-
-
 def _default_model_path() -> Path:
     env_path = os.environ.get("LLAMA_CPP_MODEL")
     if env_path:
         return Path(env_path).expanduser()
     return Path("/opt/llama.cpp/models/ember.bin")
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, default))
+    except ValueError:
+        return default
+
+
+def _env_optional_float(name: str) -> Optional[float]:
+    raw = os.environ.get(name)
+    if raw in (None, ""):
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
 
 
 @dataclass
@@ -103,21 +113,26 @@ class LlamaInvocationError(RuntimeError):
 
 @dataclass
 class LlamaSession:
-    """
-    Drives llama.cpp through its CLI binary.
+    """Drives llama.cpp through llama-cpp-python bindings."""
 
-    The session builds a context-rich prompt (docs + command history) and
-    expects llama.cpp to optionally emit command hints inside [[COMMAND: ...]].
-    """
-
-    binary_path: Path = field(default_factory=_default_llama_bin)
     model_path: Path = field(default_factory=_default_model_path)
+    timeout_sec: float = float(os.environ.get("LLAMA_CPP_TIMEOUT", "120"))
     max_tokens: int = int(os.environ.get("LLAMA_CPP_MAX_TOKENS", "128"))
     temperature: float = float(os.environ.get("LLAMA_CPP_TEMPERATURE", "0.2"))
     top_p: float = float(os.environ.get("LLAMA_CPP_TOP_P", "0.95"))
-    timeout_sec: float = float(os.environ.get("LLAMA_CPP_TIMEOUT", "120"))
+    n_ctx: int = _env_int("LLAMA_CPP_CTX", 2048)
+    n_threads: int = _env_int("LLAMA_CPP_THREADS", os.cpu_count() or 2)
+    n_batch: int = _env_int("LLAMA_CPP_BATCH", 128)
+    rope_freq_base: Optional[float] = field(default_factory=lambda: _env_optional_float("LLAMA_CPP_ROPE_FREQ_BASE"))
+    rope_freq_scale: Optional[float] = field(default_factory=lambda: _env_optional_float("LLAMA_CPP_ROPE_FREQ_SCALE"))
+    llama_client: Optional["Llama"] = None
     command_history: List[CommandExecutionLog] = field(default_factory=list)
     _doc_snippets: List[DocumentationSnippet] = field(default_factory=list)
+    _client_lock: "threading.Lock" = field(
+        default_factory=lambda: __import__("threading").Lock(),
+        init=False,
+        repr=False,
+    )
 
     def prime_with_docs(self, snippets: Iterable[DocumentationSnippet]) -> None:
         """Store documentation slices so we can reference them in responses."""
@@ -182,12 +197,46 @@ class LlamaSession:
         ).strip()
 
     def _run_llama(self, prompt: str) -> str:
-        """Invoke llama.cpp and return its stdout."""
+        """Invoke llama.cpp via llama-cpp-python and return its text."""
 
-        binary = self._detect_binary()
-        if binary is None:
+        client = self._ensure_client()
+
+        def _invoke():
+            return client.create_completion(
+                prompt=prompt,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                stream=False,
+            )
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_invoke)
+            try:
+                completion = future.result(timeout=self.timeout_sec)
+            except TimeoutError:
+                future.cancel()
+                raise LlamaInvocationError(
+                    f"llama timed out after {self.timeout_sec} seconds – reduce "
+                    "LLAMA_CPP_MAX_TOKENS or LLAMA_CPP_TIMEOUT."
+                ) from None
+            except Exception as exc:  # pragma: no cover
+                raise LlamaInvocationError(str(exc)) from exc
+
+        text = completion["choices"][0]["text"].strip()
+        logger.info("llama completed (chars=%s)", len(text))
+        return text
+
+    def _ensure_client(self) -> "Llama":
+        """Initialise the llama client lazily."""
+
+        if self.llama_client is not None:
+            return self.llama_client
+
+        if Llama is None:
             raise LlamaInvocationError(
-                f"llama binary not found near {self.binary_path}. Set LLAMA_CPP_BIN."
+                "llama-cpp-python is not installed. Run 'pip install llama-cpp-python' "
+                f"(original error: {LLAMA_IMPORT_ERROR})"
             )
 
         model = self._detect_model_path()
@@ -196,71 +245,30 @@ class LlamaSession:
                 "No model found. Place a .gguf under ./models or set LLAMA_CPP_MODEL."
             )
 
-        logger.info(
-            "Invoking llama: bin=%s model=%s max_tokens=%s temp=%s top_p=%s",
-            binary,
-            model,
-            self.max_tokens,
-            self.temperature,
-            self.top_p,
-        )
+        with self._client_lock:
+            if self.llama_client is None:
+                logger.info(
+                    "Loading llama model: %s (threads=%s ctx=%s batch=%s)",
+                    model,
+                    self.n_threads,
+                    self.n_ctx,
+                    self.n_batch,
+                )
+                params = {
+                    "model_path": str(model),
+                    "n_ctx": self.n_ctx,
+                    "n_threads": self.n_threads,
+                    "n_batch": self.n_batch,
+                }
+                if self.rope_freq_base:
+                    params["rope_freq_base"] = self.rope_freq_base
+                if self.rope_freq_scale:
+                    params["rope_freq_scale"] = self.rope_freq_scale
+                self.llama_client = Llama(**params)  # type: ignore[call-arg]
 
-        cmd = [
-            str(binary),
-            "-m",
-            str(model),
-            "-n",
-            str(self.max_tokens),
-            "--temp",
-            str(self.temperature),
-            "--top-p",
-            str(self.top_p),
-            "-p",
-            prompt,
-        ]
+        return self.llama_client
 
-        try:
-            completed = subprocess.run(
-                cmd,
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=self.timeout_sec,
-            )
-        except subprocess.TimeoutExpired:
-            raise LlamaInvocationError(
-                f"llama timed out after {self.timeout_sec} seconds – reduce "
-                "LLAMA_CPP_MAX_TOKENS or LLAMA_CPP_TIMEOUT."
-            ) from None
-        except (subprocess.CalledProcessError, OSError) as exc:
-            raise LlamaInvocationError(str(exc)) from exc
-
-        output = completed.stdout.strip()
-        logger.info("llama completed (chars=%s)", len(output))
-        return output
-
-    def _detect_binary(self) -> Path | None:
-        """Resolve the llama binary path, falling back to common locations."""
-
-        env_override = os.environ.get("LLAMA_CPP_BIN")
-        candidates = [
-            self.binary_path,
-            Path(env_override).expanduser() if env_override else None,
-            Path("/opt/llama.cpp/build/bin/llama-cli"),
-            Path("/opt/llama.cpp/main"),
-        ]
-
-        for candidate in candidates:
-            if candidate and str(candidate).strip() and candidate.exists():
-                return candidate
-
-        which = shutil.which("llama-cli")
-        if which:
-            return Path(which)
-
-        return None
-
-    def _detect_model_path(self) -> Path | None:
+    def _detect_model_path(self) -> Optional[Path]:
         """Resolve the model path, preferring env vars then local models directory."""
 
         candidates: List[Path] = []
@@ -284,10 +292,10 @@ class LlamaSession:
             if directory and directory.exists():
                 ggufs = sorted(directory.glob("*.gguf"))
                 bins = sorted(directory.glob("*.bin"))
-                for listing in (ggufs, bins):
-                    if listing:
-                        candidates.extend(listing)
-                        break
+                if ggufs:
+                    candidates.extend(ggufs)
+                elif bins:
+                    candidates.extend(bins)
 
         seen: set[str] = set()
         for candidate in candidates:

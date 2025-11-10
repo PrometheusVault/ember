@@ -15,7 +15,7 @@ Status legend:
 | Basic logging pipeline | Planned | Forward CLI events to `/logs/agents/core.log`; align with auditing goals. |
 | Provisioning hooks | Planned | `core.agent` should trigger `provision.agent` as part of bootstrap workflow. |
 | Raspberry Pi 5 bootstrap | Planned | Ship a systemd service that launches `python -m ember` at boot and attaches the REPL to the primary TTY. |
-| llama.cpp wiring | In Progress | Docker image builds llama.cpp and the REPL shells out to `llama-cli`; next step is fine-tuning prompts + command parsing. |
+| llama.cpp wiring | Completed | Runtime now uses `llama-cpp-python`, supports env overrides, logging, and unit tests without external CLI tooling. |
 | tmux HUD | Planned | Standardize the tmux status line so users always see session/vault/health info even while multitasking. |
 
 ## Phase 2 – Agent + Plugin Ecosystem

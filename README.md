@@ -22,21 +22,21 @@ you can just run the stub directly on macOS or Linux.
 
 1. Raspberry Pi boots and systemd (or similar) invokes `python -m ember`.
 2. Ember mounts the vault, loads local documentation (README, AGENTS, roadmap),
-   and primes `llama.cpp` with those excerpts for contextual grounding.
+   and primes `llama.cpp` (via the `llama-cpp-python` bindings) with those
+   excerpts for contextual grounding.
 3. The user lands in the Ember REPL inside a dedicated `tmux` session. The HUD
    in the tmux status line shows the active session, vault path, and basic
    health so operators always have situational awareness even if they open new
    panes or windows.
-4. Natural language prompts are sent to `llama.cpp` (via `llama-cli` inside the
-   container), while commands prefixed
+4. Natural language prompts are sent to `llama.cpp` through the Python bindings,
+   while commands prefixed
    with `/` (for example `/status`) call Ember's built-in handlers.
 4. `llama.cpp` decides when to run commands (`status`, provisioning hooks, etc.).
    Ember executes each command, captures the output, and feeds that text back
    into the next prompt so the LLM maintains situational awareness.
 
-The stub shells out to `/opt/llama.cpp/llama-cli`; if the binary or model
-cannot be found, the REPL prints a helpful error rather than crashing so you
-can correct the configuration and retry.
+If the bindings or model cannot be found, the REPL prints a helpful error
+rather than crashing so you can correct the configuration and retry.
 
 ## Docker workflow
 
@@ -54,8 +54,8 @@ dev container.
 
 `make repl` ensures the container is running, activates the virtualenv, and
 executes `python -m ember` entirely inside Docker. Additional tuning knobs are
-available through env vars such as `LLAMA_CPP_BIN`, `LLAMA_CPP_MAX_TOKENS`,
-`LLAMA_CPP_TEMPERATURE`, and `LLAMA_CPP_TOP_P`.
+available through env vars such as `LLAMA_CPP_MAX_TOKENS`, `LLAMA_CPP_THREADS`,
+`LLAMA_CPP_TEMPERATURE`, `LLAMA_CPP_TOP_P`, and `LLAMA_CPP_TIMEOUT`.
 
 Model management tips:
 
@@ -66,6 +66,13 @@ Model management tips:
 - Prefer smaller, lower-quantized models (e.g., `llama-3.2-3b-instruct-q4_0.gguf`) for Raspberry Pis.
 - You can cap generation time with `LLAMA_CPP_TIMEOUT` (default 120s). If llama
   exceeds this window the REPL reports a timeout instead of hanging.
+
+## Testing
+
+Use `make test` (or `pytest`) to run the growing unit-test suite. Tests avoid
+loading actual GGUF models by injecting fakes, so they run quickly without
+llama.cpp binaries present. GitHub Actions (`python-tests.yml`) runs `ruff`
+lint plus the same pytest suite on every push/PR targeting `main`.
 
 ## Long-term Plan
 

@@ -22,7 +22,7 @@ PORTS           ?= -p 3000:3000
 ENV_VARS        ?=
 
 # Command used for tests inside the running container
-TEST_CMD        ?= ./bin/test
+TEST_CMD        ?= pytest
 
 # Optional model path used by `make repl` (inside the container)
 MODEL           ?=
