@@ -35,11 +35,17 @@ from .configuration import (
     load_runtime_configuration,
 )
 from .logging_utils import setup_logging
+from .slash_commands import (
+    CommandRouter,
+    SlashCommand,
+    SlashCommandContext,
+    render_help_table,
+    render_rich,
+)
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
 EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CommandHandler = Callable[[List[str]], str]
 logger = logging.getLogger("ember")
 
 
@@ -67,61 +73,57 @@ def print_banner() -> None:
     print()
 
 
-@dataclass
-class CommandRouter:
-    """Dispatches CLI commands to registered handlers."""
-
-    handlers: Dict[str, CommandHandler] = field(default_factory=dict)
-
-    def register(self, command: str, handler: CommandHandler) -> None:
-        """Attach a handler for a lower-case command keyword."""
-
-        self.handlers[command.lower()] = handler
-
-    def handle(self, command: str, args: List[str]) -> str:
-        """
-        Route the command to the matching handler.
-
-        Returning strings keeps the transport simple for now; in the future the
-        handler will likely emit structured JSON for the UI/web API.
-        """
-
-        handler = self.handlers.get(command.lower())
-        if handler is None:
-            return (
-                f"[todo] '{command}' is not wired yet. "
-                "Documented handlers will populate here as agents land."
-            )
-        return handler(args)
-
-
 def build_router(config: ConfigurationBundle) -> CommandRouter:
     """Seed the router with placeholder commands."""
 
-    router = CommandRouter()
-
-    def status_handler(_: List[str]) -> str:
-        diagnostics = (
-            "ok"
-            if not config.diagnostics
-            else "; ".join(
-                f"{diag.level}: {diag.message}" for diag in config.diagnostics
-            )
+    router = CommandRouter(config)
+    router.register(
+        SlashCommand(
+            name="status",
+            description="Show vault, logging, and configuration diagnostics.",
+            handler=status_command,
         )
-        return (
-            "[status] vault={vault} ({status}) files={files} "
-            "log={log_path} diagnostics={diagnostics}"
-        ).format(
-            vault=config.vault_dir,
-            status=config.status,
-            files=len(config.files_loaded),
-            log_path=config.log_path or "(not initialized)",
-            diagnostics=diagnostics,
+    )
+    router.register(
+        SlashCommand(
+            name="help",
+            description="List available slash commands.",
+            handler=help_command,
         )
-
-    router.register("status", status_handler)
-    router.register("help", lambda _: "Commands: status, help, quit")
+    )
     return router
+
+
+def status_command(context: SlashCommandContext, _: List[str]) -> str:
+    """Pretty runtime status via Rich tables."""
+
+    config = context.config
+    info = Table.grid(padding=(0, 2))
+    info.add_row("Vault", str(config.vault_dir))
+    info.add_row("Status", config.status)
+    info.add_row("Config files", str(len(config.files_loaded)))
+    info.add_row("Log path", str(config.log_path or "(not initialized)"))
+    info.add_row("Mode", EMBER_MODE)
+
+    def _render(console: Console) -> None:
+        console.print(Panel(info, title="Runtime Status", border_style="green"))
+        if config.diagnostics:
+            diag_table = Table(show_header=True, header_style="bold red")
+            diag_table.add_column("Level", style="red")
+            diag_table.add_column("Message")
+            diag_table.add_column("Source", overflow="fold")
+            for diag in config.diagnostics:
+                source = str(diag.source or config.vault_dir)
+                diag_table.add_row(diag.level.upper(), diag.message, source)
+            console.print(Panel(diag_table, title="Diagnostics", border_style="red"))
+
+    return render_rich(_render)
+
+
+def help_command(context: SlashCommandContext, _: List[str]) -> str:
+    """Rich-formatted help table."""
+
+    return render_help_table(context.router.commands())
 
 
 def emit_configuration_report(config: ConfigurationBundle) -> None:
@@ -146,7 +148,7 @@ def configure_autocomplete(router: CommandRouter) -> None:
     if readline is None:
         return
 
-    commands = sorted(router.handlers.keys())
+    commands = list(router.command_names)
 
     def completer(text: str, state: int):
         buffer = readline.get_line_buffer()
@@ -197,7 +199,7 @@ def bootstrap_llama_session(
     snippets = doc_context.load()
     llama_session = LlamaSession(
         command_history=history,
-        command_names=sorted(router.handlers.keys()),
+        command_names=list(router.command_names),
     )
     llama_session.prime_with_docs(snippets)
     return llama_session, len(snippets)
