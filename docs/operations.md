@@ -9,7 +9,7 @@ see `docs/ROADMAP.md`.
 
 1. The device boots and `python -m ember` is launched (via tmux or a service
    manager such as systemd/OpenRC).
-2. Ember mounts the vault, loads local documentation (README, AGENTS, roadmap),
+2. Ember mounts the vault (see `docs/vault.md` for structure), loads local documentation (README, AGENTS, roadmap),
    and primes `llama.cpp` (via `llama-cpp-python`) with that context.
 3. The operator lands in the Ember REPL inside a dedicated tmux session. The
    HUD in the status line shows the active session, vault path, and basic
@@ -116,8 +116,9 @@ APK_PRUNE="nano openssh-server" sudo ./scripts/provision.sh
 ```
 
 Customize directories by exporting `LLAMA_DIR`, `EMBER_MODEL_DIR`, or
-`EMBER_VAULT_DIR` before running the script. Set `EMBER_SKIP_AUTO_TMUX=1`
-before logging in if you need a plain shell for repairs.
+`EMBER_VAULT_DIR` before running the script (see `docs/vault.md` for more on
+vault layout). Set `EMBER_SKIP_AUTO_TMUX=1` before logging in if you need a
+plain shell for repairs.
 
 ### Upgrading Ember
 

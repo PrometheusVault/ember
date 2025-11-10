@@ -29,6 +29,7 @@ from .ai import (
     LlamaPlan,
     LlamaSession,
 )
+from .configuration import ConfigurationBundle, load_runtime_configuration
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
 EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
@@ -51,18 +52,6 @@ def print_banner() -> None:
     ).strip()
     print(banner)
     print()
-
-
-def load_configuration(vault_dir: Path) -> Dict[str, str]:
-    """
-    Placeholder config loader.
-
-    Future state: read YAML under `config/` and the selected vault. For now we
-    just report whether the directory exists so operators can spot misconfigurations.
-    """
-
-    status = "ready" if vault_dir.exists() else "missing"
-    return {"vault_path": str(vault_dir), "vault_status": status}
 
 
 @dataclass
@@ -93,20 +82,47 @@ class CommandRouter:
         return handler(args)
 
 
-def build_router(config: Dict[str, str]) -> CommandRouter:
+def build_router(config: ConfigurationBundle) -> CommandRouter:
     """Seed the router with placeholder commands."""
 
     router = CommandRouter()
 
     def status_handler(_: List[str]) -> str:
+        diagnostics = (
+            "ok"
+            if not config.diagnostics
+            else "; ".join(
+                f"{diag.level}: {diag.message}" for diag in config.diagnostics
+            )
+        )
         return (
-            "[status] vault={vault_path} ({vault_status}) "
-            "future: include agent + plugin health"
-        ).format(**config)
+            "[status] vault={vault} ({status}) files={files} diagnostics={diagnostics}"
+        ).format(
+            vault=config.vault_dir,
+            status=config.status,
+            files=len(config.files_loaded),
+            diagnostics=diagnostics,
+        )
 
     router.register("status", status_handler)
     router.register("help", lambda _: "Commands: status, help, quit")
     return router
+
+
+def emit_configuration_report(config: ConfigurationBundle) -> None:
+    """Print diagnostics so operators can correct issues quickly."""
+
+    if not config.diagnostics:
+        print(
+            f"[config] Loaded {len(config.files_loaded)} file(s) "
+            f"from repo and vault config directories."
+        )
+        return
+
+    print("[config] Diagnostics:")
+    for diag in config.diagnostics:
+        prefix = diag.source or config.vault_dir
+        print(f"  - ({diag.level.upper()}) {diag.message} [{prefix}]")
 
 
 def configure_autocomplete(router: CommandRouter) -> None:
@@ -182,8 +198,9 @@ def main() -> None:
     )
     console = Console()
     print_banner()
-    config = load_configuration(VAULT_DIR)
-    router = build_router(config)
+    config_bundle = load_runtime_configuration(VAULT_DIR)
+    emit_configuration_report(config_bundle)
+    router = build_router(config_bundle)
     configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
     llama_session, doc_count = bootstrap_llama_session(history, router)

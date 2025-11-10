@@ -1,0 +1,10 @@
+runtime:
+  name: Ember
+  auto_restart: true
+logging:
+  level: INFO
+agents:
+  enabled:
+    - core.agent
+    - network.agent
+    - provision.agent
