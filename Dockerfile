@@ -11,10 +11,22 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     git \
+    pkg-config \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Build llama.cpp so Ember can call it within the container
+RUN git clone --depth=1 https://github.com/ggerganov/llama.cpp.git /opt/llama.cpp && \
+    cd /opt/llama.cpp && \
+    cmake -B build -DLLAMA_CURL=OFF && \
+    cmake --build build --config Release -j"$(nproc)" && \
+    #make -j"$(nproc)" llama-cli && \
+    mkdir -p /opt/llama.cpp/models
 
 # Create app user
 RUN useradd -ms /bin/bash ember
+RUN chown -R ember:ember /opt/llama.cpp
 USER ember
 
 WORKDIR /opt/ember-app

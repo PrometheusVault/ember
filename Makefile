@@ -24,11 +24,19 @@ ENV_VARS        ?=
 # Command used for tests inside the running container
 TEST_CMD        ?= ./bin/test
 
+# Optional model path used by `make repl` (inside the container)
+MODEL           ?=
+
+REPL_EXPORT_MODEL :=
+ifneq ($(strip $(MODEL)),)
+REPL_EXPORT_MODEL := export LLAMA_CPP_MODEL='$(MODEL)'; 
+endif
+
 .DEFAULT_GOAL := help
 
 # ---- Targets ----------------------------------------------------------------
 
-.PHONY: help build rebuild dev run shell logs stop rm restart ps prune test exec
+.PHONY: help build rebuild dev run shell repl logs stop rm restart ps prune test exec
 
 help: ## Show this help message
 	@echo "Ember dev Makefile"
@@ -39,6 +47,7 @@ help: ## Show this help message
 	@echo "  make dev          Start dev container (detached) with volume mount"
 	@echo "  make run          Run container in foreground (one-off)"
 	@echo "  make shell        Open an interactive shell in the running container"
+	@echo "  make repl         Start (if needed) and attach to the Ember REPL inside the container"
 	@echo "  make exec CMD=... Exec a command in the running container"
 	@echo "  make logs         Follow container logs"
 	@echo "  make test         Run tests inside the running container"
@@ -56,6 +65,7 @@ help: ## Show this help message
 	@echo "  PORTS           ($(PORTS))"
 	@echo "  ENV_VARS        ($(ENV_VARS))"
 	@echo "  TEST_CMD        ($(TEST_CMD))"
+	@echo "  MODEL           (make repl) path inside container to GGUF, e.g. MODEL=/srv/ember/models/foo.gguf"
 
 build: ## Build the dev image
 	docker build \
@@ -94,6 +104,14 @@ run: ## Run container in foreground (good for CI or quick checks)
 
 shell: ## Open an interactive shell in the running container
 	docker exec -it $(CONTAINER_NAME) /bin/bash
+
+repl: ## Attach to the Ember REPL inside the dev container (starts container if needed)
+	@if ! docker ps --format '{{.Names}}' | grep -q '^$(CONTAINER_NAME)$$'; then \
+		echo "Container $(CONTAINER_NAME) is not running. Starting via 'make dev'..."; \
+		$(MAKE) dev; \
+		sleep 2; \
+	fi
+	docker exec -it $(CONTAINER_NAME) sh -lc "$(REPL_EXPORT_MODEL). /opt/ember-app/venv/bin/activate && cd $(WORKDIR) && python -m ember"
 
 exec: ## Exec an arbitrary command in the running container (CMD=\"...\")
 	@if [ -z "$(CMD)" ]; then \
