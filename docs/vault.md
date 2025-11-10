@@ -23,7 +23,9 @@ $VAULT_DIR/
 Only the `config/` directory is required for the new vault-aware configuration
 flow, but keeping logs and plugins here ensures the vault remains self-contained.
 Ember automatically writes `logs/agents/core.log`, so the directory is created
-on first launch if it does not already exist.
+on first launch if it does not already exist. When the vault path is not
+writable Ember falls back to `./.ember_runtime/logs/agents/core.log` (inside the
+repo) and emits a warning so you can correct permissions or bind mounts.
 
 ## Configuration overrides
 

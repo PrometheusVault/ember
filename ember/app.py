@@ -29,7 +29,11 @@ from .ai import (
     LlamaPlan,
     LlamaSession,
 )
-from .configuration import ConfigurationBundle, load_runtime_configuration
+from .configuration import (
+    ConfigurationBundle,
+    Diagnostic,
+    load_runtime_configuration,
+)
 from .logging_utils import setup_logging
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
@@ -37,6 +41,14 @@ EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CommandHandler = Callable[[List[str]], str]
 logger = logging.getLogger("ember")
+
+
+def _log_path_within_vault(log_path: Path, vault_dir: Path) -> bool:
+    try:
+        log_path.relative_to(vault_dir)
+        return True
+    except ValueError:
+        return False
 
 
 def print_banner() -> None:
@@ -200,6 +212,17 @@ def main() -> None:
     config_bundle = load_runtime_configuration(VAULT_DIR)
     log_path = setup_logging(config_bundle.vault_dir, log_level_name)
     config_bundle.log_path = log_path
+    if not _log_path_within_vault(log_path, config_bundle.vault_dir):
+        config_bundle.diagnostics.append(
+            Diagnostic(
+                level="warning",
+                message=(
+                    "Vault log directory is not writable; "
+                    f"logging to fallback path '{log_path}'."
+                ),
+                source=log_path,
+            )
+        )
     emit_configuration_report(config_bundle)
     logger.info("Logging initialized at %s", log_path)
     router = build_router(config_bundle)

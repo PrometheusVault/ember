@@ -28,7 +28,9 @@ Every Ember session writes a rotating log to `$VAULT_DIR/logs/agents/core.log`
 (see `docs/vault.md`). Slash commands, planner activity, and general runtime
 events appear there, giving you an audit trail even when the REPL scrollback is
 cleared. Rotate or ship the log by managing the files under the vault’s
-`logs/agents` directory.
+`logs/agents` directory. If the vault path is not writable (e.g., the default
+`/vault` inside Docker without a bind mount), Ember falls back to
+`./.ember_runtime/logs/agents/core.log` and surfaces a warning at startup.
 
 ## Docker workflow
 
