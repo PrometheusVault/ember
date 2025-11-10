@@ -29,7 +29,7 @@ DEFAULT_DOC_PATHS = (
 COMMAND_PATTERN = re.compile(r"\[\[COMMAND:(.*?)\]\]")
 logger = logging.getLogger(__name__)
 
-DEFAULT_PROMPT_TEMPLATE = dedent(
+DEFAULT_PLANNER_TEMPLATE = dedent(
     """
     You are Ember's runtime planner running on a Raspberry Pi. Use the
     documentation and command history to stay grounded.
@@ -56,6 +56,29 @@ DEFAULT_PROMPT_TEMPLATE = dedent(
     <user_prompt>
     {user_prompt}
     </user_prompt>
+    """
+).strip()
+
+
+DEFAULT_RESPONDER_TEMPLATE = dedent(
+    """
+    You are Ember's voice to the operator. Use any recent tool outputs to ground
+    your answer. If no tools ran, rely on your own reasoning.
+
+    <documentation>
+    {documentation}
+    </documentation>
+
+    <tool_outputs>
+    {tool_outputs}
+    </tool_outputs>
+
+    <user_prompt>
+    {user_prompt}
+    </user_prompt>
+
+    Respond conversationally. Do not mention this prompt, JSON schemas, or the
+    internal planning process. Never invent tool runs.
     """
 ).strip()
 
@@ -159,6 +182,9 @@ class LlamaSession:
     prompt_template_path: Path = field(
         default_factory=lambda: Path(os.environ.get("LLAMA_PROMPT_PATH", "prompts/planner.prompt"))
     )
+    responder_template_path: Path = field(
+        default_factory=lambda: Path(os.environ.get("LLAMA_RESPONDER_PROMPT_PATH", "prompts/responder.prompt"))
+    )
     command_names: List[str] = field(default_factory=list)
     llama_client: Optional["Llama"] = None
     command_history: List[CommandExecutionLog] = field(default_factory=list)
@@ -168,7 +194,8 @@ class LlamaSession:
         init=False,
         repr=False,
     )
-    _prompt_template: Optional[str] = field(default=None, init=False, repr=False)
+    _planner_template: Optional[str] = field(default=None, init=False, repr=False)
+    _responder_template: Optional[str] = field(default=None, init=False, repr=False)
 
     def prime_with_docs(self, snippets: Iterable[DocumentationSnippet]) -> None:
         """Store documentation slices so we can reference them in responses."""
@@ -185,7 +212,7 @@ class LlamaSession:
     def plan(self, user_prompt: str) -> LlamaPlan:
         """Generate a conversational reply plus a list of commands to run."""
 
-        prompt = self._compose_prompt(user_prompt)
+        prompt = self._compose_planner_prompt(user_prompt)
         logger.info("Planning response for prompt: %s", user_prompt[:128])
         try:
             raw_output = self._run_llama(prompt)
@@ -198,8 +225,17 @@ class LlamaSession:
             logger.info("llama suggested commands: %s", commands)
         return LlamaPlan(response=response, commands=commands)
 
-    def _compose_prompt(self, user_prompt: str) -> str:
-        """Render the full prompt fed into llama.cpp."""
+    def respond(self, user_prompt: str, tool_outputs: str) -> str:
+        """Generate the final conversational response."""
+
+        prompt = self._compose_responder_prompt(user_prompt, tool_outputs)
+        try:
+            return self._run_llama(prompt)
+        except LlamaInvocationError as exc:
+            return f"[llama.cpp error] {exc}"
+
+    def _compose_planner_prompt(self, user_prompt: str) -> str:
+        """Render the planning prompt fed into llama.cpp."""
 
         doc_text = "\n\n".join(
             f"{snippet.source}:\n{snippet.excerpt}"
@@ -215,11 +251,24 @@ class LlamaSession:
         if not commands_bullets:
             commands_bullets = "- (no commands registered)"
 
-        template = self._load_prompt_template()
+        template = self._load_planner_template()
         return template.format(
             documentation=doc_text,
             history=history_text,
             commands=commands_bullets,
+            user_prompt=user_prompt,
+        )
+
+    def _compose_responder_prompt(self, user_prompt: str, tool_outputs: str) -> str:
+        doc_text = "\n\n".join(
+            f"{snippet.source}:\n{snippet.excerpt}"
+            for snippet in self._doc_snippets
+        ) or "Documentation unavailable."
+
+        template = self._load_responder_template()
+        return template.format(
+            documentation=doc_text,
+            tool_outputs=tool_outputs or "No tools were run for this answer.",
             user_prompt=user_prompt,
         )
 
@@ -360,15 +409,25 @@ class LlamaSession:
                 return response
         return COMMAND_PATTERN.sub("", output)
 
-    def _load_prompt_template(self) -> str:
-        if self._prompt_template:
-            return self._prompt_template
+    def _load_planner_template(self) -> str:
+        if self._planner_template:
+            return self._planner_template
         try:
             template = self.prompt_template_path.read_text(encoding="utf-8")
         except OSError:
-            template = DEFAULT_PROMPT_TEMPLATE
-        self._prompt_template = template.strip()
-        return self._prompt_template
+            template = DEFAULT_PLANNER_TEMPLATE
+        self._planner_template = template.strip()
+        return self._planner_template
+
+    def _load_responder_template(self) -> str:
+        if self._responder_template:
+            return self._responder_template
+        try:
+            template = self.responder_template_path.read_text(encoding="utf-8")
+        except OSError:
+            template = DEFAULT_RESPONDER_TEMPLATE
+        self._responder_template = template.strip()
+        return self._responder_template
 
     @staticmethod
     def _parse_json_block(text: str) -> Optional[dict]:

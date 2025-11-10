@@ -48,6 +48,16 @@ def test_plan_parses_commands(tmp_path: Path):
     assert "hello" in plan.response.lower()
 
 
+def test_responder_uses_tool_outputs(tmp_path: Path):
+    session = LlamaSession(
+        llama_client=FakeLlama(text='{"response":"done","commands":[]}'),
+        timeout_sec=5,
+    )
+    session.prime_with_docs([])
+    reply = session.respond("who are you?", "status: ok")
+    assert "done" in reply
+
+
 def test_documentation_context_reads_files(tmp_path: Path):
     repo = tmp_path
     (repo / "README.md").write_text("readme", encoding="utf-8")

@@ -137,12 +137,12 @@ def execute_cli_command(
     router: CommandRouter,
     llama_session: LlamaSession,
     history: List[CommandExecutionLog],
-) -> None:
+) -> str:
     """Helper that executes an Ember CLI command and records the output."""
 
     stripped = command_line.strip()
     if not stripped:
-        return
+        return ""
 
     parts = stripped.split()
     command, args = parts[0], parts[1:]
@@ -152,6 +152,7 @@ def execute_cli_command(
     log_entry = CommandExecutionLog(command=stripped, output=result)
     history.append(log_entry)
     llama_session.record_execution(log_entry)
+    return result
     logger.info("Executed CLI command: %s", stripped)
 
 
@@ -193,7 +194,7 @@ def main() -> None:
 
     while True:
         try:
-            raw_line = input("EMBER> ")
+            raw_line = input("> ")
         except (EOFError, KeyboardInterrupt):
             print("\n[Exiting Ember]")
             break
@@ -224,10 +225,18 @@ def main() -> None:
         status_text = f"[cyan]Thinking: {line[:40]}{'…' if len(line) > 40 else ''}"
         with console.status(status_text, spinner="dots"):
             plan: LlamaPlan = llama_session.plan(line)
-        show_plan_outcome(console, plan)
 
-        for planned_command in plan.commands:
-            execute_cli_command(planned_command, router, llama_session, history)
+        if plan.commands:
+            show_plan_summary(console, plan)
+            tool_chunks = []
+            for planned_command in plan.commands:
+                result = execute_cli_command(planned_command, router, llama_session, history)
+                tool_chunks.append(f"/{planned_command}\n{result}")
+            tool_context = "\n\n".join(tool_chunks)
+            final_response = llama_session.respond(line, tool_context)
+            show_final_response(console, final_response, plan.commands)
+        else:
+            show_final_response(console, plan.response, [])
 def show_runtime_overview(
     console: Console,
     session: LlamaSession,
@@ -248,16 +257,36 @@ def show_runtime_overview(
     console.print(Panel(table, title="Ember Runtime", border_style="cyan"))
 
 
-def show_plan_outcome(console: Console, plan: LlamaPlan) -> None:
-    """Display a concise summary after llama returns."""
+def show_plan_summary(console: Console, plan: LlamaPlan) -> None:
+    """Display the planner's intent before tools run."""
 
     commands_text = ", ".join(f"/{cmd}" for cmd in plan.commands) or "None"
-    preview = plan.response.strip() or "(no response)"
+    preview = plan.response.strip() or "(planner provided no notes)"
 
     console.print(
         Panel(
-            f"[bold]Response[/bold]\n{preview}\n\n[bold]Commands[/bold]\n{commands_text}",
-            border_style="green" if plan.commands else "blue",
-            title="Planner Output",
+            f"[bold]Planner notes[/bold]\n{preview}\n\n[bold]Commands to run[/bold]\n{commands_text}",
+            border_style="yellow",
+            title="Planner",
         )
     )
+
+
+def show_final_response(
+    console: Console,
+    response: str,
+    commands_run: List[str],
+) -> None:
+    """Render the final conversational answer."""
+
+    commands_text = ", ".join(f"/{cmd}" for cmd in commands_run) or "None"
+    preview = response.strip() or "(no response)"
+    console.print(f"[bold cyan]Ember>[/] {preview}")
+    if commands_run:
+        console.print(
+            Panel(
+                f"[bold]Commands run[/bold]\n{commands_text}",
+                border_style="blue",
+                title="Tools",
+            )
+        )

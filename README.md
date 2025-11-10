@@ -28,12 +28,11 @@ you can just run the stub directly on macOS or Linux.
    in the tmux status line shows the active session, vault path, and basic
    health so operators always have situational awareness even if they open new
    panes or windows.
-4. Natural language prompts are sent to `llama.cpp` through the Python bindings,
-   while commands prefixed
-   with `/` (for example `/status`) call Ember's built-in handlers.
-4. `llama.cpp` decides when to run commands (`status`, provisioning hooks, etc.).
-   Ember executes each command, captures the output, and feeds that text back
-   into the next prompt so the LLM maintains situational awareness.
+4. Natural language prompts are sent to `llama.cpp` through the Python bindings.
+   Ember first runs a *planner* prompt that decides whether any slash commands
+   should run. If commands are suggested, Ember executes them, collects their
+   output, and then runs a *responder* prompt so the final answer reflects the
+   fresh tool data.
 
 If the bindings or model cannot be found, the REPL prints a helpful error
 rather than crashing so you can correct the configuration and retry.
@@ -69,11 +68,14 @@ Model management tips:
 
 ### Prompt customization
 
-- Ember renders planner prompts from `prompts/planner.prompt`. Adjust this file
-  (or point `LLAMA_PROMPT_PATH` at your own) to change how we describe commands,
-  required JSON formats, etc.
-- The default template instructs the LLM to output JSON with `response` and
-  `commands` keys, so we can decide whether to run slash commands or just reply.
+- Ember renders planner prompts from `prompts/planner.prompt` and responder
+  prompts from `prompts/responder.prompt`. Adjust these files (or point
+  `LLAMA_PROMPT_PATH` / `LLAMA_RESPONDER_PROMPT_PATH` at your own) to change how
+  we describe commands, tool outputs, or final answer tone.
+- The planner template instructs the LLM to output JSON with `response` and
+  `commands` keys so Ember can decide whether to run slash commands. The
+  responder template takes the user prompt plus the aggregated tool results and
+  returns the conversational answer.
 
 ## Testing
 
