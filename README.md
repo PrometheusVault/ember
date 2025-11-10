@@ -178,6 +178,61 @@ Hints:
   Replace the path with wherever the repo lives. Remove the `exit` if you want
   to drop back into your shell after detaching from Ember.
 
+### tmux panes & windows
+
+The bundled tmux config (`templates/tmux.conf`) sets `default-shell` to zsh and
+`default-command` to `scripts/tmux_pane.sh`, so every new pane or window starts
+inside the Ember REPL automatically. Exit the REPL and the pane seamlessly
+falls back to a normal shell. If you need a plain shell immediately, prefix
+your tmux command with `EMBER_SKIP_AUTO_REPL=1`, e.g.,
+`EMBER_SKIP_AUTO_REPL=1 tmux new-window`.
+
+## Alpine bootstrap & upgrades
+
+Provisioning or refreshing a node happens entirely from the console:
+
+```bash
+apk add git
+git clone https://github.com/PrometheusVault/ember.git
+cd ember
+sudo ./scripts/provision.sh
+```
+
+The script is idempotent—run it on day-0 images or again after a `git pull` to
+pick up new dependencies. It will:
+
+- Install Python 3, pip, tmux, zsh, curl, and build tooling via `apk`
+- Create (or update) the `ember` operator account plus templated tmux/zsh dotfiles
+- Build `.venv`, install `requirements.txt`, and wire login shells to launch the HUD
+- Configure tty1 autologin so reboots land directly in the tmux session
+- Clone and compile `llama.cpp` into `/opt/llama.cpp`, placing `llama-cli` on `$PATH`
+- Download a default GGUF model into `models/` (override with `EMBER_MODEL_URL`)
+
+For minimal installs you can prune packages after provisioning:
+
+```bash
+APK_PRUNE="nano openssh-server" sudo ./scripts/provision.sh
+```
+
+Set `EMBER_SKIP_AUTO_TMUX=1` before logging in if you need a plain shell for
+repairs. `LLAMA_DIR`, `EMBER_MODEL_DIR`, and `EMBER_VAULT_DIR` are all
+customizable via env vars when running `scripts/provision.sh`.
+
+### Upgrading Ember
+
+1. Log in on the console (or SSH), detach from tmux (`Ctrl-b d`), and update the repo:
+   ```bash
+   cd /home/ember/ember
+   git pull --ff-only
+   ```
+2. Re-run the provisioner to rebuild the virtualenv, re-render templates, and
+   update `llama.cpp`/models:
+   ```bash
+   sudo ./scripts/provision.sh
+   ```
+3. Reattach with `hud` (alias) or `ember/ember_dev_run.sh`. The script is safe
+   to run repeatedly; it only rebuilds components that changed.
+
 ## Troubleshooting
 
 - `IndentationError` or similar when running `python -m ember`: ensure

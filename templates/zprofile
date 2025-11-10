@@ -1,0 +1,10 @@
+# Auto-start the Ember HUD when the login shell is not already inside tmux.
+
+export EMBER_REPO_DIR="{{REPO_DIR}}"
+export EMBER_VENV_DIR="{{REPO_DIR}}/.venv"
+export VAULT_DIR="${VAULT_DIR:-{{VAULT_DIR}}}"
+
+if [ -z "${TMUX:-}" ] && [ -z "${EMBER_SKIP_AUTO_TMUX:-}" ]; then
+  SESSION_NAME="${EMBER_TMUX_SESSION:-ember}"
+  APP_DIR="$EMBER_REPO_DIR" SESSION="$SESSION_NAME" VENV_DIR="$EMBER_VENV_DIR" "$EMBER_REPO_DIR/ember/ember_dev_run.sh"
+fi

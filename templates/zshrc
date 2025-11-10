@@ -1,0 +1,28 @@
+# Zsh runtime profile for the Ember operator account.
+# Generated from templates/zshrc by scripts/provision.sh
+
+export EDITOR="${EDITOR:-vim}"
+export PAGER="${PAGER:-less}"
+export PATH="$HOME/.local/bin:$PATH"
+
+export EMBER_REPO_DIR="{{REPO_DIR}}"
+export VAULT_DIR="{{VAULT_DIR}}"
+export LLAMA_CPP_DIR="{{LLAMA_DIR}}"
+export LLAMA_CPP_MODEL="{{MODEL_PATH}}"
+
+if [ -d "$EMBER_REPO_DIR" ]; then
+  cd "$EMBER_REPO_DIR" || true
+fi
+
+setopt prompt_subst
+autoload -U colors && colors
+PROMPT='%{$fg[blue]%}ember%{$reset_color%}:%{$fg[yellow]%}%~%{$reset_color%}$ '
+
+alias ll='ls -lah'
+alias hud="$EMBER_REPO_DIR/ember/ember_dev_run.sh"
+alias venv='source "$EMBER_REPO_DIR/.venv/bin/activate"'
+
+# Source user overrides if they exist.
+if [ -f "$HOME/.zshrc.local" ]; then
+  source "$HOME/.zshrc.local"
+fi
