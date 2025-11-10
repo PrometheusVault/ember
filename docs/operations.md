@@ -22,6 +22,14 @@ see `docs/ROADMAP.md`.
 If bindings or models cannot be found, the REPL emits actionable errors instead
 of crashing so you can correct the configuration and retry.
 
+## Logging
+
+Every Ember session writes a rotating log to `$VAULT_DIR/logs/agents/core.log`
+(see `docs/vault.md`). Slash commands, planner activity, and general runtime
+events appear there, giving you an audit trail even when the REPL scrollback is
+cleared. Rotate or ship the log by managing the files under the vault’s
+`logs/agents` directory.
+
 ## Docker workflow
 
 Use Docker when you want parity with production-like environments:

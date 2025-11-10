@@ -37,6 +37,7 @@ class ConfigurationBundle:
     vault_overrides: Dict[str, Any] = field(default_factory=dict)
     files_loaded: List[Path] = field(default_factory=list)
     diagnostics: List[Diagnostic] = field(default_factory=list)
+    log_path: Optional[Path] = None
 
 
 def resolve_vault_dir(

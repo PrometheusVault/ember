@@ -22,6 +22,8 @@ $VAULT_DIR/
 
 Only the `config/` directory is required for the new vault-aware configuration
 flow, but keeping logs and plugins here ensures the vault remains self-contained.
+Ember automatically writes `logs/agents/core.log`, so the directory is created
+on first launch if it does not already exist.
 
 ## Configuration overrides
 

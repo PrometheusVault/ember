@@ -11,8 +11,8 @@ Status legend:
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Interactive CLI loop | Placeholder | `ember/app.py` mirrors the eventual planner/actuator loop and accepts commands for now. |
-| Vault-aware configuration | Planned | Detect and validate `VAULT_DIR`, load YAML under `config/`. |
-| Basic logging pipeline | Planned | Forward CLI events to `/logs/agents/core.log`; align with auditing goals. |
+| Vault-aware configuration | Completed | Vault dir detection, YAML merging, diagnostics, and docs shipped. |
+| Basic logging pipeline | Completed | CLI + planner events now stream to `/logs/agents/core.log` with rotation. |
 | Provisioning hooks | Planned | `core.agent` should trigger `provision.agent` as part of bootstrap workflow. |
 | Raspberry Pi 5 bootstrap | Planned | Ship a systemd service that launches `python -m ember` at boot and attaches the REPL to the primary TTY. |
 | llama.cpp wiring | Completed | Runtime now uses `llama-cpp-python`, supports env overrides, logging, and unit tests without external CLI tooling. |

@@ -30,6 +30,7 @@ from .ai import (
     LlamaSession,
 )
 from .configuration import ConfigurationBundle, load_runtime_configuration
+from .logging_utils import setup_logging
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
 EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
@@ -96,11 +97,13 @@ def build_router(config: ConfigurationBundle) -> CommandRouter:
             )
         )
         return (
-            "[status] vault={vault} ({status}) files={files} diagnostics={diagnostics}"
+            "[status] vault={vault} ({status}) files={files} "
+            "log={log_path} diagnostics={diagnostics}"
         ).format(
             vault=config.vault_dir,
             status=config.status,
             files=len(config.files_loaded),
+            log_path=config.log_path or "(not initialized)",
             diagnostics=diagnostics,
         )
 
@@ -168,8 +171,8 @@ def execute_cli_command(
     log_entry = CommandExecutionLog(command=stripped, output=result)
     history.append(log_entry)
     llama_session.record_execution(log_entry)
-    return result
     logger.info("Executed CLI command: %s", stripped)
+    return result
 
 
 def bootstrap_llama_session(
@@ -191,15 +194,14 @@ def bootstrap_llama_session(
 def main() -> None:
     """Entry point for `python -m ember`."""
 
-    log_level = os.environ.get("EMBER_LOG_LEVEL", "WARNING").upper()
-    logging.basicConfig(
-        level=getattr(logging, log_level, logging.WARNING),
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    )
+    log_level_name = os.environ.get("EMBER_LOG_LEVEL", "WARNING").upper()
     console = Console()
     print_banner()
     config_bundle = load_runtime_configuration(VAULT_DIR)
+    log_path = setup_logging(config_bundle.vault_dir, log_level_name)
+    config_bundle.log_path = log_path
     emit_configuration_report(config_bundle)
+    logger.info("Logging initialized at %s", log_path)
     router = build_router(config_bundle)
     configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
