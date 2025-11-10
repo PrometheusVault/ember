@@ -67,6 +67,14 @@ Model management tips:
 - You can cap generation time with `LLAMA_CPP_TIMEOUT` (default 120s). If llama
   exceeds this window the REPL reports a timeout instead of hanging.
 
+### Prompt customization
+
+- Ember renders planner prompts from `prompts/planner.prompt`. Adjust this file
+  (or point `LLAMA_PROMPT_PATH` at your own) to change how we describe commands,
+  required JSON formats, etc.
+- The default template instructs the LLM to output JSON with `response` and
+  `commands` keys, so we can decide whether to run slash commands or just reply.
+
 ## Testing
 
 Use `make test` (or `pytest`) to run the growing unit-test suite. Tests avoid

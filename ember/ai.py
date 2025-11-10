@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from dataclasses import dataclass, field
+import json
 import logging
 import os
 from pathlib import Path
@@ -27,6 +28,36 @@ DEFAULT_DOC_PATHS = (
 )
 COMMAND_PATTERN = re.compile(r"\[\[COMMAND:(.*?)\]\]")
 logger = logging.getLogger(__name__)
+
+DEFAULT_PROMPT_TEMPLATE = dedent(
+    """
+    You are Ember's runtime planner running on a Raspberry Pi. Use the
+    documentation and command history to stay grounded.
+
+    Available slash commands (emit them only if truly necessary):
+    {commands}
+
+    Respond with JSON of the shape:
+    {{
+      "response": "concise operator-facing reply",
+      "commands": ["status", "other-command"]
+    }}
+
+    If no command needs to run, return an empty array for "commands".
+
+    <documentation>
+    {documentation}
+    </documentation>
+
+    <command_history>
+    {history}
+    </command_history>
+
+    <user_prompt>
+    {user_prompt}
+    </user_prompt>
+    """
+).strip()
 
 
 def _default_model_path() -> Path:
@@ -125,6 +156,10 @@ class LlamaSession:
     n_batch: int = _env_int("LLAMA_CPP_BATCH", 128)
     rope_freq_base: Optional[float] = field(default_factory=lambda: _env_optional_float("LLAMA_CPP_ROPE_FREQ_BASE"))
     rope_freq_scale: Optional[float] = field(default_factory=lambda: _env_optional_float("LLAMA_CPP_ROPE_FREQ_SCALE"))
+    prompt_template_path: Path = field(
+        default_factory=lambda: Path(os.environ.get("LLAMA_PROMPT_PATH", "prompts/planner.prompt"))
+    )
+    command_names: List[str] = field(default_factory=list)
     llama_client: Optional["Llama"] = None
     command_history: List[CommandExecutionLog] = field(default_factory=list)
     _doc_snippets: List[DocumentationSnippet] = field(default_factory=list)
@@ -133,6 +168,7 @@ class LlamaSession:
         init=False,
         repr=False,
     )
+    _prompt_template: Optional[str] = field(default=None, init=False, repr=False)
 
     def prime_with_docs(self, snippets: Iterable[DocumentationSnippet]) -> None:
         """Store documentation slices so we can reference them in responses."""
@@ -175,26 +211,17 @@ class LlamaSession:
             for entry in self.command_history[-5:]
         ) or "No commands executed yet."
 
-        return dedent(
-            f"""
-            You are Ember's runtime planner running on a Raspberry Pi.
-            Use the documentation and command history to stay grounded.
-            Always respond with a short summary for the operator first.
-            If an Ember CLI command should run, add it on its own line in the form [[COMMAND: <command>]].
+        commands_bullets = "\n".join(f"- /{name}" for name in self.command_names)
+        if not commands_bullets:
+            commands_bullets = "- (no commands registered)"
 
-            <documentation>
-            {doc_text}
-            </documentation>
-
-            <command_history>
-            {history_text}
-            </command_history>
-
-            <user_prompt>
-            {user_prompt}
-            </user_prompt>
-            """
-        ).strip()
+        template = self._load_prompt_template()
+        return template.format(
+            documentation=doc_text,
+            history=history_text,
+            commands=commands_bullets,
+            user_prompt=user_prompt,
+        )
 
     def _run_llama(self, prompt: str) -> str:
         """Invoke llama.cpp via llama-cpp-python and return its text."""
@@ -259,6 +286,7 @@ class LlamaSession:
                     "n_ctx": self.n_ctx,
                     "n_threads": self.n_threads,
                     "n_batch": self.n_batch,
+                    "verbose": False,
                 }
                 if self.rope_freq_base:
                     params["rope_freq_base"] = self.rope_freq_base
@@ -312,12 +340,59 @@ class LlamaSession:
 
     @staticmethod
     def _extract_commands(output: str) -> List[str]:
-        """Pull [[COMMAND: ...]] entries out of llama.cpp text."""
+        """Extract commands from planner JSON; fallback to marker parsing."""
 
+        parsed = LlamaSession._parse_json_block(output)
+        if parsed is not None:
+            commands = parsed.get("commands")
+            if isinstance(commands, list):
+                return [str(cmd).strip() for cmd in commands if str(cmd).strip()]
         return [match.group(1).strip() for match in COMMAND_PATTERN.finditer(output)]
 
     @staticmethod
     def _strip_command_markers(output: str) -> str:
-        """Remove [[COMMAND: ...]] markers from the text shown to the user."""
+        """Return user-facing text extracted from planner JSON if present."""
 
+        parsed = LlamaSession._parse_json_block(output)
+        if parsed is not None:
+            response = parsed.get("response")
+            if isinstance(response, str):
+                return response
         return COMMAND_PATTERN.sub("", output)
+
+    def _load_prompt_template(self) -> str:
+        if self._prompt_template:
+            return self._prompt_template
+        try:
+            template = self.prompt_template_path.read_text(encoding="utf-8")
+        except OSError:
+            template = DEFAULT_PROMPT_TEMPLATE
+        self._prompt_template = template.strip()
+        return self._prompt_template
+
+    @staticmethod
+    def _parse_json_block(text: str) -> Optional[dict]:
+        # Remove fenced code blocks if present
+        if "```" in text:
+            chunks = [chunk.strip() for chunk in text.split("```") if chunk.strip()]
+        else:
+            chunks = [text]
+
+        for chunk in chunks:
+            start = None
+            depth = 0
+            for idx, char in enumerate(chunk):
+                if char == "{":
+                    if depth == 0:
+                        start = idx
+                    depth += 1
+                elif char == "}":
+                    if depth > 0:
+                        depth -= 1
+                        if depth == 0 and start is not None:
+                            candidate = chunk[start : idx + 1]
+                            try:
+                                return json.loads(candidate)
+                            except json.JSONDecodeError:
+                                continue
+        return None

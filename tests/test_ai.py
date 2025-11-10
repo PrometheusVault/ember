@@ -18,7 +18,7 @@ from ember.ai import (
 class FakeLlama:
     """Minimal llama-cpp stub for tests."""
 
-    def __init__(self, text: str = "hello [[COMMAND: status]]") -> None:
+    def __init__(self, text: str = '{"response":"hello","commands":["status"]}') -> None:
         self._text = text
         self.calls = []
 
@@ -27,11 +27,18 @@ class FakeLlama:
         return {"choices": [{"text": self._text}]}
 
 
-def test_plan_parses_commands(monkeypatch):
+def test_plan_parses_commands(tmp_path: Path):
+    prompt_file = tmp_path / "prompt.txt"
+    prompt_file.write_text(
+        "Commands: {commands}\nDocs: {documentation}\nHistory: {history}\nUser: {user_prompt}",
+        encoding="utf-8",
+    )
     session = LlamaSession(
         llama_client=FakeLlama(),
         timeout_sec=5,
         command_history=[CommandExecutionLog(command="/status", output="ok")],
+        command_names=["status"],
+        prompt_template_path=prompt_file,
     )
     session.prime_with_docs([])
 

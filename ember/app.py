@@ -20,6 +20,8 @@ from textwrap import dedent
 from typing import Callable, Dict, List
 
 from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 
 from .ai import (
     CommandExecutionLog,
@@ -153,21 +155,28 @@ def execute_cli_command(
     logger.info("Executed CLI command: %s", stripped)
 
 
-def bootstrap_llama_session(history: List[CommandExecutionLog]) -> LlamaSession:
-    """Load documentation context and return a prepped llama session."""
+def bootstrap_llama_session(
+    history: List[CommandExecutionLog],
+    router: CommandRouter,
+) -> tuple[LlamaSession, int]:
+    """Load documentation context and return a prepped llama session plus doc count."""
 
     doc_context = DocumentationContext(repo_root=REPO_ROOT)
     snippets = doc_context.load()
-    llama_session = LlamaSession(command_history=history)
+    llama_session = LlamaSession(
+        command_history=history,
+        command_names=sorted(router.handlers.keys()),
+    )
     llama_session.prime_with_docs(snippets)
-    return llama_session
+    return llama_session, len(snippets)
 
 
 def main() -> None:
     """Entry point for `python -m ember`."""
 
+    log_level = os.environ.get("EMBER_LOG_LEVEL", "WARNING").upper()
     logging.basicConfig(
-        level=logging.INFO,
+        level=getattr(logging, log_level, logging.WARNING),
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
     console = Console()
@@ -176,7 +185,8 @@ def main() -> None:
     router = build_router(config)
     configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
-    llama_session = bootstrap_llama_session(history)
+    llama_session, doc_count = bootstrap_llama_session(history, router)
+    show_runtime_overview(console, llama_session, doc_count)
 
     print("Type '/help' for runtime commands; any other text is sent to llama.cpp.")
     print("Use 'quit' or 'exit' to leave.\n")
@@ -211,9 +221,43 @@ def main() -> None:
             continue
 
         logger.info("User prompt: %s", line)
-        with console.status("[cyan]Ember is thinking…", spinner="dots"):
+        status_text = f"[cyan]Thinking: {line[:40]}{'…' if len(line) > 40 else ''}"
+        with console.status(status_text, spinner="dots"):
             plan: LlamaPlan = llama_session.plan(line)
-        print(plan.response)
+        show_plan_outcome(console, plan)
 
         for planned_command in plan.commands:
             execute_cli_command(planned_command, router, llama_session, history)
+def show_runtime_overview(
+    console: Console,
+    session: LlamaSession,
+    doc_count: int,
+) -> None:
+    """Render a small panel summarizing current runtime settings."""
+
+    table = Table.grid(padding=(0, 1))
+    table.add_row("Model", str(session.model_path.name))
+    table.add_row("Max tokens", str(session.max_tokens))
+    table.add_row("Threads", str(session.n_threads))
+    table.add_row("Docs cached", str(doc_count))
+    commands_preview = ", ".join(f"/{cmd}" for cmd in session.command_names[:6])
+    if len(session.command_names) > 6:
+        commands_preview += " …"
+    table.add_row("Commands", commands_preview or "(none)")
+
+    console.print(Panel(table, title="Ember Runtime", border_style="cyan"))
+
+
+def show_plan_outcome(console: Console, plan: LlamaPlan) -> None:
+    """Display a concise summary after llama returns."""
+
+    commands_text = ", ".join(f"/{cmd}" for cmd in plan.commands) or "None"
+    preview = plan.response.strip() or "(no response)"
+
+    console.print(
+        Panel(
+            f"[bold]Response[/bold]\n{preview}\n\n[bold]Commands[/bold]\n{commands_text}",
+            border_style="green" if plan.commands else "blue",
+            title="Planner Output",
+        )
+    )
