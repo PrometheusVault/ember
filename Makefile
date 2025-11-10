@@ -27,9 +27,30 @@ TEST_CMD        ?= ./bin/test
 # Optional model path used by `make repl` (inside the container)
 MODEL           ?=
 
-REPL_EXPORT_MODEL :=
+REPL_EXPORT_ENV :=
 ifneq ($(strip $(MODEL)),)
-REPL_EXPORT_MODEL := export LLAMA_CPP_MODEL='$(MODEL)'; 
+REPL_EXPORT_ENV += export LLAMA_CPP_MODEL='$(MODEL)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_MAX_TOKENS)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_MAX_TOKENS='$(LLAMA_CPP_MAX_TOKENS)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_TEMPERATURE)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_TEMPERATURE='$(LLAMA_CPP_TEMPERATURE)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_TOP_P)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_TOP_P='$(LLAMA_CPP_TOP_P)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_TIMEOUT)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_TIMEOUT='$(LLAMA_CPP_TIMEOUT)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_THREADS)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_THREADS='$(LLAMA_CPP_THREADS)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_BIN)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_BIN='$(LLAMA_CPP_BIN)'; 
+endif
+ifneq ($(strip $(LLAMA_CPP_MODEL_DIR)),)
+REPL_EXPORT_ENV += export LLAMA_CPP_MODEL_DIR='$(LLAMA_CPP_MODEL_DIR)'; 
 endif
 
 .DEFAULT_GOAL := help
@@ -66,6 +87,7 @@ help: ## Show this help message
 	@echo "  ENV_VARS        ($(ENV_VARS))"
 	@echo "  TEST_CMD        ($(TEST_CMD))"
 	@echo "  MODEL           (make repl) path inside container to GGUF, e.g. MODEL=/srv/ember/models/foo.gguf"
+	@echo "  LLAMA_CPP_*     (make repl) e.g. LLAMA_CPP_MAX_TOKENS=64 LLAMA_CPP_TIMEOUT=180"
 
 build: ## Build the dev image
 	docker build \
@@ -111,7 +133,7 @@ repl: ## Attach to the Ember REPL inside the dev container (starts container if 
 		$(MAKE) dev; \
 		sleep 2; \
 	fi
-	docker exec -it $(CONTAINER_NAME) sh -lc "$(REPL_EXPORT_MODEL). /opt/ember-app/venv/bin/activate && cd $(WORKDIR) && python -m ember"
+	docker exec -it $(CONTAINER_NAME) sh -lc "$(REPL_EXPORT_ENV). /opt/ember-app/venv/bin/activate && cd $(WORKDIR) && python -m ember"
 
 exec: ## Exec an arbitrary command in the running container (CMD=\"...\")
 	@if [ -z "$(CMD)" ]; then \

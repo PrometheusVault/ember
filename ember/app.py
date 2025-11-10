@@ -12,6 +12,10 @@ from dataclasses import dataclass, field
 import logging
 import os
 from pathlib import Path
+try:
+    import readline
+except ImportError:  # pragma: no cover
+    readline = None
 from textwrap import dedent
 from typing import Callable, Dict, List
 
@@ -103,6 +107,29 @@ def build_router(config: Dict[str, str]) -> CommandRouter:
     return router
 
 
+def configure_autocomplete(router: CommandRouter) -> None:
+    """Enable readline tab completion for slash commands."""
+
+    if readline is None:
+        return
+
+    commands = sorted(router.handlers.keys())
+
+    def completer(text: str, state: int):
+        buffer = readline.get_line_buffer()
+        if not buffer.startswith("/"):
+            return None
+        fragment = text[1:] if text.startswith("/") else text
+        matches = [f"/{cmd}" for cmd in commands if cmd.startswith(fragment)]
+        if state < len(matches):
+            return matches[state]
+        return None
+
+    readline.set_completer(completer)
+    readline.parse_and_bind("tab: complete")
+    readline.set_completer_delims(" \t")
+
+
 def execute_cli_command(
     command_line: str,
     router: CommandRouter,
@@ -147,10 +174,11 @@ def main() -> None:
     print_banner()
     config = load_configuration(VAULT_DIR)
     router = build_router(config)
+    configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
     llama_session = bootstrap_llama_session(history)
 
-    print("Type ':help' for runtime commands; any other text is sent to llama.cpp.")
+    print("Type '/help' for runtime commands; any other text is sent to llama.cpp.")
     print("Use 'quit' or 'exit' to leave.\n")
 
     while True:
@@ -174,8 +202,12 @@ def main() -> None:
         if not line:
             continue
 
-        if line.startswith(":"):
-            execute_cli_command(line[1:], router, llama_session, history)
+        if line.startswith("/"):
+            command_line = line[1:]
+            if command_line.lower() in {"quit", "exit"}:
+                print("[Goodbye]")
+                break
+            execute_cli_command(command_line, router, llama_session, history)
             continue
 
         logger.info("User prompt: %s", line)

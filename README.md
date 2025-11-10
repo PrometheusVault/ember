@@ -29,7 +29,7 @@ you can just run the stub directly on macOS or Linux.
    panes or windows.
 4. Natural language prompts are sent to `llama.cpp` (via `llama-cli` inside the
    container), while commands prefixed
-   with `:` (for example `:status`) call Ember's built-in handlers.
+   with `/` (for example `/status`) call Ember's built-in handlers.
 4. `llama.cpp` decides when to run commands (`status`, provisioning hooks, etc.).
    Ember executes each command, captures the output, and feeds that text back
    into the next prompt so the LLM maintains situational awareness.
@@ -106,8 +106,10 @@ press Ctrl-D/Ctrl-C) to leave.
 
 Interaction tips:
 
-- Prefix Ember runtime commands with `:` (e.g., `:status`, `:help`). These map
+- Prefix Ember runtime commands with `/` (e.g., `/status`, `/help`). These map
   directly to the CLI router and will eventually correspond to agent actions.
+- Slash commands support TAB-completion (when readline is available), so typing
+  `/sta[TAB]` will expand to `/status`.
 - Any other input is forwarded to `llama.cpp`. If the model
   suggests a command (e.g., "status"), Ember runs it automatically and adds the
   resulting output to the conversational context.
