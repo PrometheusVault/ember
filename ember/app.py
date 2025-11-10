@@ -37,7 +37,7 @@ def print_banner() -> None:
     banner = dedent(
         f"""
         ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃  Prometheus Vault – Ember (dev stub)     ┃
+        ┃  Prometheus Vault – Ember (dev stub)      ┃
         ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
         Vault dir : {VAULT_DIR}
         Mode      : {EMBER_MODE}
