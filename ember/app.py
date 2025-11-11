@@ -104,6 +104,13 @@ def build_router(config: ConfigurationBundle) -> CommandRouter:
             handler=help_command,
         )
     )
+    router.register(
+        SlashCommand(
+            name="config",
+            description="Show merged configuration values and their source files.",
+            handler=config_command,
+        )
+    )
     return router
 
 
@@ -155,6 +162,36 @@ def help_command(context: SlashCommandContext, _: List[str]) -> str:
     """Rich-formatted help table."""
 
     return render_help_table(context.router.commands())
+
+
+def config_command(context: SlashCommandContext, _: List[str]) -> str:
+    """Render current configuration values plus their source files."""
+
+    config = context.config
+    files_panel = Table(show_header=True, header_style="bold magenta")
+    files_panel.add_column("Order", justify="right", style="magenta")
+    files_panel.add_column("File")
+    for idx, path in enumerate(config.files_loaded, start=1):
+        files_panel.add_row(str(idx), str(path))
+
+    merged_panel = Table(show_header=True, header_style="bold cyan")
+    merged_panel.add_column("Key", style="green")
+    merged_panel.add_column("Value", overflow="fold")
+
+    def flatten(prefix: str, value) -> None:
+        if isinstance(value, dict):
+            for sub_key in sorted(value.keys()):
+                flatten(f"{prefix}.{sub_key}" if prefix else sub_key, value[sub_key])
+        else:
+            merged_panel.add_row(prefix or "(root)", repr(value))
+
+    flatten("", config.merged)
+
+    def _render(console: Console) -> None:
+        console.print(Panel(files_panel, title="Loaded Config Files", border_style="magenta"))
+        console.print(Panel(merged_panel, title="Merged Configuration", border_style="cyan"))
+
+    return render_rich(_render)
 
 
 def emit_configuration_report(config: ConfigurationBundle) -> None:

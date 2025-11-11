@@ -135,11 +135,13 @@ systemd/rc files under `/etc` if you need persistent overrides on bare metal.
 
 1. Run `/status` in the REPL to inspect diagnostics, log paths, and agent
    results.
-2. Review `$VAULT_DIR/logs/agents/core.log` with `vim` or `less` for detailed
+2. Use `/config` to dump the merged configuration tree plus the list of YAML
+   files currently loaded (read-only view).
+3. Review `$VAULT_DIR/logs/agents/core.log` with `vim` or `less` for detailed
    errors.
-3. Ensure the vault overrides were actually picked up by checking
+4. Ensure the vault overrides were actually picked up by checking
    `$VAULT_DIR/config/*.yml` timestamps and contents.
-4. When in doubt, temporarily set `EMBER_LOG_LEVEL=DEBUG` and relaunch Ember.
+5. When in doubt, temporarily set `EMBER_LOG_LEVEL=DEBUG` and relaunch Ember.
 
 Happy editing! All configuration artifacts are plain text, so `vim` remains the
 fastest and most reliable way to manage them in disconnected environments.
