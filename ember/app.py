@@ -30,19 +30,14 @@ from .ai import (
     LlamaPlan,
     LlamaSession,
 )
+from .commands import COMMANDS
 from .configuration import (
     ConfigurationBundle,
     Diagnostic,
     load_runtime_configuration,
 )
 from .logging_utils import setup_logging
-from .slash_commands import (
-    CommandRouter,
-    SlashCommand,
-    SlashCommandContext,
-    render_help_table,
-    render_rich,
-)
+from .slash_commands import CommandRouter
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
 EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
@@ -89,109 +84,10 @@ def _agent_enabled(config: ConfigurationBundle, agent_name: str) -> bool:
 def build_router(config: ConfigurationBundle) -> CommandRouter:
     """Seed the router with placeholder commands."""
 
-    router = CommandRouter(config)
-    router.register(
-        SlashCommand(
-            name="status",
-            description="Show vault, logging, and configuration diagnostics.",
-            handler=status_command,
-        )
-    )
-    router.register(
-        SlashCommand(
-            name="help",
-            description="List available slash commands.",
-            handler=help_command,
-        )
-    )
-    router.register(
-        SlashCommand(
-            name="config",
-            description="Show merged configuration values and their source files.",
-            handler=config_command,
-        )
-    )
+    router = CommandRouter(config, metadata={"mode": EMBER_MODE})
+    for command in COMMANDS:
+        router.register(command)
     return router
-
-
-def status_command(context: SlashCommandContext, _: List[str]) -> str:
-    """Pretty runtime status via Rich tables."""
-
-    config = context.config
-    info = Table.grid(padding=(0, 2))
-    info.add_row("Vault", str(config.vault_dir))
-    info.add_row("Status", config.status)
-    info.add_row("Config files", str(len(config.files_loaded)))
-    info.add_row("Log path", str(config.log_path or "(not initialized)"))
-    info.add_row("Mode", EMBER_MODE)
-
-    def _render(console: Console) -> None:
-        console.print(Panel(info, title="Runtime Status", border_style="green"))
-        if config.diagnostics:
-            diag_table = Table(show_header=True, header_style="bold red")
-            diag_table.add_column("Level", style="red")
-            diag_table.add_column("Message")
-            diag_table.add_column("Source", overflow="fold")
-            for diag in config.diagnostics:
-                source = str(diag.source or config.vault_dir)
-                diag_table.add_row(diag.level.upper(), diag.message, source)
-            console.print(Panel(diag_table, title="Diagnostics", border_style="red"))
-        if config.agent_state:
-            agent_table = Table(show_header=True, header_style="bold blue")
-            agent_table.add_column("Agent", style="cyan", no_wrap=True)
-            agent_table.add_column("Status", style="green")
-            agent_table.add_column("Detail", overflow="fold")
-            for agent_name in sorted(config.agent_state.keys()):
-                state = config.agent_state.get(agent_name) or {}
-                detail = str(state.get("detail") or "").strip()
-                last_run = state.get("last_run")
-                if last_run:
-                    timestamp_text = f"last run: {last_run}"
-                    detail = f"{detail} ({timestamp_text})" if detail else timestamp_text
-                agent_table.add_row(
-                    agent_name,
-                    str(state.get("status", "unknown")).upper(),
-                    detail or "(no detail)",
-                )
-            console.print(Panel(agent_table, title="Agents", border_style="blue"))
-
-    return render_rich(_render)
-
-
-def help_command(context: SlashCommandContext, _: List[str]) -> str:
-    """Rich-formatted help table."""
-
-    return render_help_table(context.router.commands())
-
-
-def config_command(context: SlashCommandContext, _: List[str]) -> str:
-    """Render current configuration values plus their source files."""
-
-    config = context.config
-    files_panel = Table(show_header=True, header_style="bold magenta")
-    files_panel.add_column("Order", justify="right", style="magenta")
-    files_panel.add_column("File")
-    for idx, path in enumerate(config.files_loaded, start=1):
-        files_panel.add_row(str(idx), str(path))
-
-    merged_panel = Table(show_header=True, header_style="bold cyan")
-    merged_panel.add_column("Key", style="green")
-    merged_panel.add_column("Value", overflow="fold")
-
-    def flatten(prefix: str, value) -> None:
-        if isinstance(value, dict):
-            for sub_key in sorted(value.keys()):
-                flatten(f"{prefix}.{sub_key}" if prefix else sub_key, value[sub_key])
-        else:
-            merged_panel.add_row(prefix or "(root)", repr(value))
-
-    flatten("", config.merged)
-
-    def _render(console: Console) -> None:
-        console.print(Panel(files_panel, title="Loaded Config Files", border_style="magenta"))
-        console.print(Panel(merged_panel, title="Merged Configuration", border_style="cyan"))
-
-    return render_rich(_render)
 
 
 def emit_configuration_report(config: ConfigurationBundle) -> None:

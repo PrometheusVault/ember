@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from io import StringIO
-from typing import Callable, Dict, List, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from rich.console import Console
 from rich.table import Table
@@ -20,6 +20,7 @@ class SlashCommandContext:
 
     config: ConfigurationBundle
     router: "CommandRouter"
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -34,9 +35,14 @@ class SlashCommand:
 class CommandRouter:
     """Registry + dispatcher for slash commands."""
 
-    def __init__(self, config: ConfigurationBundle) -> None:
+    def __init__(
+        self,
+        config: ConfigurationBundle,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
         self.config = config
         self._commands: Dict[str, SlashCommand] = {}
+        self.metadata = metadata or {}
 
     def register(self, command: SlashCommand) -> None:
         self._commands[command.name.lower()] = command
@@ -48,7 +54,11 @@ class CommandRouter:
                 f"[todo] '{command_name}' is not wired yet. "
                 "Documented handlers will populate here as agents land."
             )
-        context = SlashCommandContext(config=self.config, router=self)
+        context = SlashCommandContext(
+            config=self.config,
+            router=self,
+            metadata=self.metadata,
+        )
         return command.handler(context, args)
 
     @property
