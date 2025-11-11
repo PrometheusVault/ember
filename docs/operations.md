@@ -159,6 +159,15 @@ inside the Ember REPL automatically. Exit the REPL and the pane gracefully
 falls back to a normal shell. Need a plain shell immediately? Prefix your tmux
 command with `EMBER_SKIP_AUTO_REPL=1`, e.g., `EMBER_SKIP_AUTO_REPL=1 tmux new-window`.
 
+- The HUD status bar now lives at the top of the screen and refreshes every two
+  seconds. It shows the session name, host, current path, the active pane
+  command, the vault directory, battery/AC state (via
+  `scripts/tmux_battery.sh`), plus the date/time. On Pi boards without a
+  battery the indicator falls back to `AC Powered`.
+- Customize the status line by editing `templates/tmux.conf` (for new installs)
+  or adjusting `~/.tmux.conf` on an existing node; reload tmux with `prefix +
+  :source-file ~/.tmux.conf`.
+
 ## Alpine provisioning & upgrades
 
 Provisioning or refreshing a node happens entirely from the console:

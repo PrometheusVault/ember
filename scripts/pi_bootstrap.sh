@@ -127,6 +127,7 @@ install_user_templates() {
 ensure_exec_scripts() {
   chmod +x "$REPO_ROOT/ember/ember_dev_run.sh"
   chmod +x "$REPO_ROOT/scripts/tmux_pane.sh"
+  chmod +x "$REPO_ROOT/scripts/tmux_battery.sh"
 }
 
 install_systemd_service() {

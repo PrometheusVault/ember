@@ -154,6 +154,7 @@ EOF
 ensure_tmux_script_exec() {
   chmod +x "$REPO_ROOT/ember/ember_dev_run.sh"
   chmod +x "$REPO_ROOT/scripts/tmux_pane.sh"
+  chmod +x "$REPO_ROOT/scripts/tmux_battery.sh"
 }
 
 cpu_count() {
