@@ -38,6 +38,7 @@ class ConfigurationBundle:
     files_loaded: List[Path] = field(default_factory=list)
     diagnostics: List[Diagnostic] = field(default_factory=list)
     log_path: Optional[Path] = None
+    agent_state: Dict[str, Any] = field(default_factory=dict)
 
 
 def resolve_vault_dir(

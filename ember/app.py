@@ -23,6 +23,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from .agents.provision import run_provision_agent
 from .ai import (
     CommandExecutionLog,
     DocumentationContext,
@@ -73,6 +74,18 @@ def print_banner() -> None:
     print()
 
 
+def _agent_enabled(config: ConfigurationBundle, agent_name: str) -> bool:
+    agents_config = config.merged.get("agents", {}) if config.merged else {}
+    enabled = agents_config.get("enabled", [])
+    if isinstance(enabled, str):
+        enabled = [enabled]
+    try:
+        normalized = {str(agent).strip().lower() for agent in enabled}
+    except TypeError:
+        normalized = set()
+    return agent_name.lower() in normalized
+
+
 def build_router(config: ConfigurationBundle) -> CommandRouter:
     """Seed the router with placeholder commands."""
 
@@ -116,6 +129,24 @@ def status_command(context: SlashCommandContext, _: List[str]) -> str:
                 source = str(diag.source or config.vault_dir)
                 diag_table.add_row(diag.level.upper(), diag.message, source)
             console.print(Panel(diag_table, title="Diagnostics", border_style="red"))
+        if config.agent_state:
+            agent_table = Table(show_header=True, header_style="bold blue")
+            agent_table.add_column("Agent", style="cyan", no_wrap=True)
+            agent_table.add_column("Status", style="green")
+            agent_table.add_column("Detail", overflow="fold")
+            for agent_name in sorted(config.agent_state.keys()):
+                state = config.agent_state.get(agent_name) or {}
+                detail = str(state.get("detail") or "").strip()
+                last_run = state.get("last_run")
+                if last_run:
+                    timestamp_text = f"last run: {last_run}"
+                    detail = f"{detail} ({timestamp_text})" if detail else timestamp_text
+                agent_table.add_row(
+                    agent_name,
+                    str(state.get("status", "unknown")).upper(),
+                    detail or "(no detail)",
+                )
+            console.print(Panel(agent_table, title="Agents", border_style="blue"))
 
     return render_rich(_render)
 
@@ -226,6 +257,7 @@ def main() -> None:
             )
         )
     emit_configuration_report(config_bundle)
+    bootstrap_agents(config_bundle)
     logger.info("Logging initialized at %s", log_path)
     router = build_router(config_bundle)
     configure_autocomplete(router)
@@ -281,6 +313,23 @@ def main() -> None:
             show_final_response(console, final_response, plan.commands)
         else:
             show_final_response(console, plan.response, [])
+
+
+def bootstrap_agents(config_bundle: ConfigurationBundle) -> None:
+    """Invoke enabled agents that should run during startup."""
+
+    if config_bundle.status != "ready":
+        logger.info(
+            "Skipping agent bootstrap because configuration status is '%s'.",
+            config_bundle.status,
+        )
+        return
+
+    if _agent_enabled(config_bundle, "provision.agent"):
+        result = run_provision_agent(config_bundle)
+        config_bundle.agent_state["provision.agent"] = result.to_dict()
+
+
 def show_runtime_overview(
     console: Console,
     session: LlamaSession,

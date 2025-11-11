@@ -22,6 +22,28 @@ see `docs/ROADMAP.md`.
 If bindings or models cannot be found, the REPL emits actionable errors instead
 of crashing so you can correct the configuration and retry.
 
+### Provision agent on bootstrap
+
+- During startup the `core.agent` automatically invokes `provision.agent`. The
+  agent ensures the vault directory contains the expected layout (logs/,
+  logs/agents/, plugins/, models/, state/, etc.) and writes a summary to
+  `$VAULT_DIR/state/provision.json`.
+- Set `EMBER_SKIP_PROVISION=1` before launching Ember to bypass the provisioning
+  pass (handy for read-only demos or CI sandboxes). Any diagnostic failures are
+  surfaced via `/status`.
+- Override the required paths or the state-file location by adding a `provision`
+  block to either `config/system.yml` or a vault override:
+
+  ```yaml
+  provision:
+    required_paths:
+      - config
+      - logs
+      - models/custom
+    state_file: state/provision.json
+  ```
+  Set `skip_env` in the same block if you need a different environment toggle.
+
 ## Logging
 
 Every Ember session writes a rotating log to `$VAULT_DIR/logs/agents/core.log`
