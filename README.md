@@ -33,6 +33,7 @@ named `ember` alive and drop into the REPL on every login.
 - Agent responsibilities and relationships: `AGENTS.md`
 - Roadmap and long-term planning: `docs/ROADMAP.md`
 - Configuration keys, env vars, and offline editing tips: `docs/configuration.md`
+- Fresh Alpine-on-Raspberry Pi install walkthrough: `docs/install_alpine_pi.md`
 
 The rest of the repository follows the conventions in `AGENTS.md`—`/agents`
 contains agent shims, `/config` holds YAML configs, `/plugins` is the extension
