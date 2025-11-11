@@ -14,7 +14,7 @@ Status legend:
 | Vault-aware configuration | Completed | Vault dir detection, YAML merging, diagnostics, and docs shipped. |
 | Basic logging pipeline | Completed | CLI + planner events now stream to `/logs/agents/core.log` with rotation. |
 | Provisioning hooks | Completed | `core.agent` now triggers `provision.agent` during bootstrap and records the run to `state/provision.json`. |
-| Raspberry Pi 5 bootstrap | Planned | Ship a systemd service that launches `python -m ember` at boot and attaches the REPL to the primary TTY. |
+| Raspberry Pi 5 bootstrap | Completed | `scripts/pi_bootstrap.sh` + `templates/ember.service` install a tmux HUD service on tty1 with systemd autologin. |
 | llama.cpp wiring | Completed | Runtime now uses `llama-cpp-python`, supports env overrides, logging, and unit tests without external CLI tooling. |
 | tmux HUD | Planned | Standardize the tmux status line so users always see session/vault/health info even while multitasking. |
 

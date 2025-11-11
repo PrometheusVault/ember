@@ -1,0 +1,26 @@
+[Unit]
+Description=Ember Runtime HUD (tty1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{EMBER_USER}}
+WorkingDirectory={{REPO_DIR}}
+Environment=APP_DIR={{REPO_DIR}}
+Environment=VENV_DIR={{VENV_DIR}}
+Environment=VAULT_DIR={{VAULT_DIR}}
+Environment=EMBER_MODE=Raspberry Pi (systemd)
+Environment=EMBER_LOG_LEVEL=INFO
+ExecStart={{REPO_DIR}}/ember/ember_dev_run.sh
+Restart=on-failure
+RestartSec=5
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -44,6 +44,45 @@ of crashing so you can correct the configuration and retry.
   ```
   Set `skip_env` in the same block if you need a different environment toggle.
 
+### Configure command (Alpine + Raspberry Pi)
+
+- Run `sudo make configure` (or `sudo ./scripts/configure_system.sh`) on any
+  newly imaged device. The script detects the host OS and dispatches to the
+  right bootstrap path:
+  - **Alpine** ⇒ `scripts/provision.sh` (OpenRC autologin, llama.cpp build,
+    etc.).
+  - **Raspberry Pi OS / Debian** ⇒ `scripts/pi_bootstrap.sh` (systemd service +
+    apt workflow).
+- Override detection with `EMBER_CONFIGURE_TARGET=alpine` or
+  `EMBER_CONFIGURE_TARGET=pi` if you’re running inside chroots or derivatives.
+- The script must be run as root; use `sudo make configure`.
+
+### Raspberry Pi 5 bootstrap
+
+`scripts/pi_bootstrap.sh` prepares Pi OS (Debian-based) images:
+
+1. Installs system packages (Python 3, tmux, zsh, git, build essentials).
+2. Creates/updates the `ember` user, vault directory, and virtualenv.
+3. Installs the tmux/zsh HUD dotfiles plus the executable helpers
+   (`ember/ember_dev_run.sh`, `scripts/tmux_pane.sh`).
+4. Renders `templates/ember.service` into `/etc/systemd/system/ember.service`.
+   The service:
+   - Runs as the `ember` user
+   - Enforces `APP_DIR`, `VENV_DIR`, `VAULT_DIR`, and `EMBER_MODE`
+   - Binds to `/dev/tty1` so the tmux HUD appears on the primary console
+   - Restarts automatically on failure
+5. Enables autologin on `tty1` by overriding `getty@tty1.service`.
+
+Useful commands after running the bootstrap:
+
+```bash
+sudo systemctl status ember.service
+sudo journalctl -u ember.service -f
+```
+
+Update variables such as `EMBER_VAULT_DIR` or `EMBER_SERVICE_NAME` before
+running the installer to customize the deployment.
+
 ## Logging
 
 Every Ember session writes a rotating log to `$VAULT_DIR/logs/agents/core.log`

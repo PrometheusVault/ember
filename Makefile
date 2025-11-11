@@ -57,7 +57,7 @@ endif
 
 # ---- Targets ----------------------------------------------------------------
 
-.PHONY: help build rebuild dev run shell repl logs stop rm restart ps prune test exec
+.PHONY: help build rebuild dev run shell repl logs stop rm restart ps prune test exec configure
 
 help: ## Show this help message
 	@echo "Ember dev Makefile"
@@ -77,6 +77,7 @@ help: ## Show this help message
 	@echo "  make restart      Restart the dev container"
 	@echo "  make ps           Show ember-related containers"
 	@echo "  make prune        Remove stopped ember containers"
+	@echo "  make configure    Run scripts/configure_system.sh (sudo recommended) to configure the host OS"
 	@echo
 	@echo "Configurable vars (override like VAR=value make dev):"
 	@echo "  IMAGE_NAME      ($(IMAGE_NAME))"
@@ -161,3 +162,6 @@ ps: ## Show ember-related containers
 
 prune: ## Remove all stopped ember containers
 	-docker ps -a --filter "name=$(CONTAINER_NAME)" --filter "status=exited" -q | xargs -r docker rm
+
+configure: ## Configure the host OS (auto-detect Alpine vs Raspberry Pi/Debian)
+	./scripts/configure_system.sh
