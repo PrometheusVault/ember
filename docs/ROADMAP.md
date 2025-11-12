@@ -40,6 +40,7 @@ Status legend:
 - **Configuration loader** – design doc TBD; until then, CLI exports `VAULT_DIR` and validates at runtime.
 - **Testing surface** – `test.agent` described in `AGENTS.md`; unit tests will target stubs as they are introduced.
 - **REPL + llama.cpp** – REPL now differentiates between `:commands` and natural prompts; swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
+- **llama.cpp curl dependency** – provisioning currently installs libcurl headers; investigate compiling without curl (and updating scripts) for fully offline systems.
 
 Document any newly agreed feature or constraint here so it can be surfaced in
 future planning discussions and converted into implementation tickets.

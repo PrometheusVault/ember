@@ -46,6 +46,7 @@ apt_bootstrap() {
     zsh \
     git \
     curl \
+    libcurl4-openssl-dev \
     build-essential \
     pkg-config \
     cmake \
