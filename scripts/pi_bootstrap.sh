@@ -53,6 +53,7 @@ apt_bootstrap() {
     linux-headers-$(uname -r | sed 's/-.*//') \
     libopenblas-dev \
     libffi-dev \
+    sudo \
     util-linux >/dev/null
 }
 

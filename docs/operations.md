@@ -214,6 +214,8 @@ plain shell for repairs.
    ```
 3. Reattach with `hud` or `ember/ember_dev_run.sh`. The script is safe to run
    repeatedly; it only rebuilds components that changed.
+- Shortcut: run `/update` inside the Ember REPL to perform the fetch/pull +
+  provision steps automatically (you may be prompted for the sudo password).
 
 ## Troubleshooting
 

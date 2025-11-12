@@ -84,7 +84,13 @@ def _agent_enabled(config: ConfigurationBundle, agent_name: str) -> bool:
 def build_router(config: ConfigurationBundle) -> CommandRouter:
     """Seed the router with placeholder commands."""
 
-    router = CommandRouter(config, metadata={"mode": EMBER_MODE})
+    router = CommandRouter(
+        config,
+        metadata={
+            "mode": EMBER_MODE,
+            "repo_root": str(REPO_ROOT),
+        },
+    )
     for command in COMMANDS:
         router.register(command)
     return router
