@@ -193,6 +193,10 @@ build_llama_cpp() {
 }
 
 install_llama_cpp() {
+  if [ -x "$LLAMA_DIR/build/bin/llama-cli" ] && [ -z "${LLAMA_FORCE_REBUILD:-}" ]; then
+    log "llama.cpp already built at $LLAMA_DIR; skipping rebuild (set LLAMA_FORCE_REBUILD=1 to force)."
+    return
+  fi
   sync_llama_cpp
   build_llama_cpp
 }
