@@ -50,6 +50,7 @@ apt_bootstrap() {
     build-essential \
     pkg-config \
     cmake \
+    linux-headers-$(uname -r | sed 's/-.*//') \
     libopenblas-dev \
     libffi-dev >/dev/null
 }
