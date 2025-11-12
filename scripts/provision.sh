@@ -215,7 +215,9 @@ download_llama_model() {
 
   tmp_file="$MODEL_PATH.part"
   log "downloading LLM from $MODEL_URL (this may take a while)"
-  if ! curl -L --fail --progress-bar "$MODEL_URL" -o "$tmp_file"; then
+  curl_opts=${EMBER_CURL_OPTS:--k -L --fail --progress-bar}
+  # TODO: re-enable strict TLS verification once we have a trusted mirror.
+  if ! curl $curl_opts "$MODEL_URL" -o "$tmp_file"; then
     rm -f "$tmp_file"
     fatal "failed to download model from $MODEL_URL"
   fi

@@ -41,6 +41,8 @@ Status legend:
 - **Testing surface** – `test.agent` described in `AGENTS.md`; unit tests will target stubs as they are introduced.
 - **REPL + llama.cpp** – REPL now differentiates between `:commands` and natural prompts; swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
 - **llama.cpp curl dependency** – provisioning currently installs libcurl headers; investigate compiling without curl (and updating scripts) for fully offline systems.
+- **Shell passthrough mode** – spike on treating Ember as a shell-first experience (command passthrough, planner hotkey, deeper zsh/tmux integration).
+- **Model download TLS** – provisioning currently invokes curl with `-k` to bypass certificate checks; restore strict SSL handling once we have a signed mirror or pinned CA.
 
 Document any newly agreed feature or constraint here so it can be surfaced in
 future planning discussions and converted into implementation tickets.
