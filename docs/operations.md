@@ -187,7 +187,7 @@ pull` to pick up new dependencies. It:
 - Builds `.venv`, installs `requirements.txt`, and wires login shells to launch the HUD
 - Configures tty1 autologin so reboots land directly in the tmux session
 - Clones & compiles `llama.cpp` into `/opt/llama.cpp`, copying `llama-cli` onto `$PATH`
-- Downloads a default GGUF model into `models/` (override with `EMBER_MODEL_URL`; curl currently uses `-k` to tolerate self-signed certs – override with `EMBER_CURL_OPTS` once you have trusted mirrors)
+- Downloads a default GGUF model into `models/` (override with `EMBER_MODEL_URL`; wget currently runs with `--no-check-certificate` – override `EMBER_WGET_OPTS` once you have trusted mirrors)
 
 For minimal installs, prune packages after provisioning:
 
