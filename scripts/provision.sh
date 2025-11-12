@@ -215,7 +215,7 @@ download_llama_model() {
 
   tmp_file="$MODEL_PATH.part"
   log "downloading LLM from $MODEL_URL (this may take a while)"
-  wget_opts=${EMBER_WGET_OPTS:---no-check-certificate --progress=dot:giga}
+  wget_opts=${EMBER_WGET_OPTS:---no-check-certificate}
   # TODO: tighten TLS handling when we have a signed mirror.
   if ! wget $wget_opts "$MODEL_URL" -O "$tmp_file"; then
     rm -f "$tmp_file"
