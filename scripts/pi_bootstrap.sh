@@ -52,7 +52,8 @@ apt_bootstrap() {
     cmake \
     linux-headers-$(uname -r | sed 's/-.*//') \
     libopenblas-dev \
-    libffi-dev >/dev/null
+    libffi-dev \
+    util-linux >/dev/null
 }
 
 ensure_user() {
