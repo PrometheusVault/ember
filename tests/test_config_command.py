@@ -46,3 +46,14 @@ def test_config_set_rejects_lists(tmp_path: Path):
     output = COMMAND.handler(context, ["logging.level", "[DEBUG, TRACE]"])
 
     assert "list values is not supported" in output
+
+
+def test_config_validate_reports_diagnostics(tmp_path: Path):
+    context, _ = _build_context(tmp_path)
+    broken = context.config.vault_dir / "config" / "broken.yml"
+    broken.write_text("runtime: [\n", encoding="utf-8")
+
+    output = COMMAND.handler(context, ["validate"])
+
+    assert "Diagnostics" in output
+    assert "broken.yml" in output

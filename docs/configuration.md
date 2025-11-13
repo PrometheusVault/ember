@@ -262,7 +262,8 @@ systemd/rc files under `/etc` if you need persistent overrides on bare metal.
 1. Run `/status` in the REPL to inspect diagnostics, log paths, and agent
    results.
 2. Use `/config` to dump the merged configuration tree plus the list of YAML
-   files currently loaded (read-only view).
+   files currently loaded (read-only view). Run `/config validate` when you need
+   a fresh diagnostics summary without restarting Ember.
 3. Review `$VAULT_DIR/logs/agents/core.log` with `vim` or `less` for detailed
    errors.
 4. Ensure the vault overrides were actually picked up by checking

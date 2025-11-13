@@ -17,6 +17,7 @@ from ..configuration import ConfigurationBundle, load_runtime_configuration
 from ..slash_commands import SlashCommand, SlashCommandContext, render_rich
 
 YAML_FLAGS = {"--yaml", "-y", "yaml"}
+VALIDATE_FLAGS = {"--validate", "-v", "validate"}
 CLI_OVERRIDE_FILENAME = "99-cli-overrides.yml"
 
 
@@ -63,7 +64,15 @@ def _handler(context: SlashCommandContext, args: List[str]) -> str:
     if not args:
         return _render_config_view(context.config, show_yaml=False)
 
-    if all(arg.lower() in YAML_FLAGS for arg in args):
+    lowered = [arg.lower() for arg in args]
+
+    if all(arg in VALIDATE_FLAGS for arg in lowered):
+        return _handle_validate(context)
+
+    if lowered and lowered[0] == "validate":
+        return _handle_validate(context)
+
+    if all(arg in YAML_FLAGS for arg in lowered):
         return _render_config_view(context.config, show_yaml=True)
 
     key_expr = args[0]
@@ -277,6 +286,62 @@ def _reload_configuration(context: SlashCommandContext):
     context.router.config = bundle
     context.config = bundle
     return bundle
+
+
+def _handle_validate(context: SlashCommandContext) -> str:
+    bundle = _reload_configuration(context)
+
+    def _render(console: Console) -> None:
+        summary = Table(box=box.SIMPLE_HEAD, pad_edge=False)
+        summary.add_column("Field", style="bold cyan")
+        summary.add_column("Value", overflow="fold")
+        summary.add_row("Status", bundle.status)
+        summary.add_row("Files loaded", str(len(bundle.files_loaded)))
+        summary.add_row("Diagnostics", str(len(bundle.diagnostics)))
+        console.print(
+            Panel(
+                summary,
+                title="Configuration Status",
+                border_style="green" if bundle.status == "ready" else "yellow",
+                padding=(0, 1),
+            )
+        )
+
+        if bundle.diagnostics:
+            diag_table = Table(
+                show_header=True,
+                header_style="bold magenta",
+                box=box.SIMPLE,
+                pad_edge=False,
+            )
+            diag_table.add_column("Level", style="magenta", no_wrap=True)
+            diag_table.add_column("Message", overflow="fold", ratio=2)
+            diag_table.add_column("Source", style="dim", overflow="fold")
+            for diag in bundle.diagnostics:
+                source = diag.source or context.config.vault_dir
+                diag_table.add_row(
+                    diag.level.upper(),
+                    diag.message,
+                    _friendly_path(source, bundle.vault_dir),
+                )
+            console.print(
+                Panel(
+                    diag_table,
+                    title="Diagnostics",
+                    border_style="magenta",
+                    padding=(0, 1),
+                )
+            )
+        else:
+            console.print(
+                Panel(
+                    "No diagnostics reported.",
+                    border_style="green",
+                    padding=(0, 1),
+                )
+            )
+
+    return render_rich(_render)
 
 
 def _format_value(value: Any) -> str:

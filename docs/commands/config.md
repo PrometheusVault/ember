@@ -6,6 +6,7 @@
 
 ```
 /config [--yaml]
+/config validate
 /config <key.path>
 /config <key.path> <value>
 ```
@@ -18,7 +19,10 @@ Displays two Rich panels:
 2. **Merged Configuration (Tree)** – Hierarchical view of the combined config.
 
 Passing `--yaml` adds a third panel that prints the merged configuration as
-YAML, suitable for exporting or diffing.
+YAML, suitable for exporting or diffing. Running `config validate` reloads the
+configuration bundle and renders a diagnostics table so you can confirm whether
+Ember considers the current YAML valid (handy on CI nodes or before committing
+changes).
 
 Providing a dotted key path switches `/config` into direct lookup/set mode:
 
@@ -30,11 +34,14 @@ Providing a dotted key path switches `/config` into direct lookup/set mode:
 # OPTIONS
 
 - `--yaml`, `-y`, `yaml` – Render an additional YAML block.
+- `validate`, `--validate`, `-v` – Reload the configuration and display a
+  diagnostics summary/table.
 
 # EXAMPLES
 
 - `/config` – Show the file list and tree view.
 - `/config --yaml` – Include the YAML export panel.
+- `/config validate` – Reload the configuration and display validation status.
 - `/config logging.level` – Print the current logging level.
 - `/config logging.level DEBUG` – Raise the log level and persist it under
   `$VAULT_DIR/config/99-cli-overrides.yml`.
