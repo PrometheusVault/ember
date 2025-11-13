@@ -102,6 +102,18 @@ CONFIG_SCHEMA: SchemaSpec = {
         },
         "default": {},
     },
+    "test": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": False},
+            "command": {"type": str, "default": "pytest -q"},
+            "workdir": {"type": str, "default": "."},
+            "report_path": {"type": str, "default": "state/test-agent.json"},
+            "timeout": {"type": (int, float), "default": 600},
+            "env": {"type": dict, "default": {}},
+        },
+        "default": {},
+    },
 }
 
 

@@ -191,6 +191,29 @@ Alpine nodes come online ready for `make build` immediately.
 **Outputs:** Test reports, exit codes
 **Dependencies:** `toolchain.agent`
 
+**Developer notes:** Configuration lives under the `test` block:
+
+```yaml
+test:
+  enabled: false
+  command: "pytest -q"
+  report_path: state/test-agent.json
+  timeout: 600
+```
+
+- When `enabled` is true the agent runs the command during bootstrap (handy for
+  CI). Leave it disabled on local nodes unless you explicitly want tests.
+- `command` accepts a string or list. Use list form to avoid shell escaping.
+- The JSON report (default `$VAULT_DIR/state/test-agent.json`) stores stdout,
+  stderr, exit code, and duration; keep it small if you’re on limited storage.
+- See `docs/agents/test.md` for advanced options (workdir overrides, extra env
+  vars, etc.).
+
+**Operator notes:** `/agents` exposes the last run’s status and report path. Use
+`/status` to see diagnostics when tests fail/time out. Toggle the agent via
+`agents.enabled`/`agents.disabled` or the `test.enabled` flag when you want to
+  run suites on every boot (e.g., nightly CI nodes).
+
 ---
 
 ### 🧭 6. `update.agent`

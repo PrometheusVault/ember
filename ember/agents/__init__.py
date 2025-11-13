@@ -3,6 +3,7 @@
 from .network import run_network_agent
 from .provision import run_provision_agent
 from .registry import AgentDefinition, AgentRegistry
+from .test_runner import run_test_agent
 from .toolchain import run_toolchain_agent
 
 REGISTRY = AgentRegistry()
@@ -29,6 +30,15 @@ REGISTRY.register(
         description="Verify developer tooling (docker, make, python deps) is ready.",
         handler=run_toolchain_agent,
         triggers=("bootstrap",),
+    )
+)
+REGISTRY.register(
+    AgentDefinition(
+        name="test.agent",
+        description="Execute the configured test suite and capture its result.",
+        handler=run_test_agent,
+        triggers=("bootstrap",),
+        default_enabled=False,
     )
 )
 

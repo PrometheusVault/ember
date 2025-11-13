@@ -10,7 +10,7 @@
      - [x] Register `network.agent` with full metadata + readiness hooks (docs + tests landed).
      - [x] Register `provision.agent` so bootstrap flows report via `/agents` (docs refreshed, dedicated guide added).
      - [x] Register `toolchain.agent` for build/dev commands exposure (manifest + docs + readiness checks).
-     - [ ] Register `test.agent` once scaffolding exists so CI status surfaces live.
+     - [x] Register `test.agent` once scaffolding exists so CI status surfaces live (config + docs + reports).
      - [ ] Register `plugin.agent` and confirm dynamic loaders publish state.
      - [ ] Register `update.agent` with secure-update context + last run result.
 

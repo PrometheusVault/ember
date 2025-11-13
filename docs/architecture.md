@@ -40,8 +40,8 @@ working on a fully offline Raspberry Pi.
 - **Provisioning** – `provision.agent` ensures the vault layout exists and
   writes a state file under `state/`. The output is visible via `/status`.
 - **Active agents** – `network.agent` (connectivity inventory),
-  `provision.agent` (vault layout), and `toolchain.agent` (developer tooling
-  readiness) run on the bootstrap trigger today. Future additions
+  `provision.agent` (vault layout), `toolchain.agent` (developer tooling), and
+  `test.agent` (optional CI runs) are registered today. Future additions
   (`metrics.agent`, `plugin.agent`, etc.) reuse the same registry plumbing as
   they land.
 

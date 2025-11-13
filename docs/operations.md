@@ -81,6 +81,16 @@ operator guide. Field notes below summarize the day-to-day workflow.
 - Update the manifest whenever provisioning scripts learn a new dependency so
   headless deployments advertise the correct requirements immediately.
 
+### Test agent runs
+
+- `test.agent` is disabled by default (running the suite on boot can be slow),
+  but CI nodes or nightly QA boxes can enable it via `test.enabled: true` or the
+  global `agents.enabled` list.
+- `/agents` shows the latest result plus the report path. Inspect
+  `$VAULT_DIR/state/test-agent.json` for full stdout/stderr when failures occur.
+- Configure the command/timeout via the `test` block. See
+  `docs/agents/test.md` for details on workdir overrides and env vars.
+
 ### Configure command (Alpine + Raspberry Pi)
 
 - Run `sudo make configure` (or `sudo ./scripts/configure_system.sh`) on any
