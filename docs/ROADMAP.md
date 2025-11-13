@@ -21,8 +21,7 @@ Status legend:
 | Status command layout | Completed | `/status` uses section filters, pagination hints, and folding columns for handheld screens. |
 | Config view readability | Completed | `/config` renders a Rich tree and optional YAML view with truncated scalars. |
 | Planner response compaction | Completed | Runtime overview + planner/final panels use stacked grids and bullet lists for narrow terminals. |
-| Slash command manpages | Planned | Add detailed `/help <command>` (or `<command> help`) output with flags, arguments, and examples mirroring manpages. |
-| Command-local help | Planned | Allow `/<command> --help` shortcuts to show the same manpage content inline. |
+| Slash command manpages | Completed | `/man <command>` now renders Markdown docs; roadmap tracks optional inline help separately. |
 | Responsive banner | Completed | Wide terminals show a centered BBS-style box with slogan; narrow screens fall back to plain text. |
 
 ## Phase 2 – Agent + Plugin Ecosystem
@@ -46,6 +45,10 @@ Status legend:
 - **Command routing layer** – placeholder in `ember/app.py`; will evolve into planner-driven dispatcher.
 - **Configuration loader** – design doc TBD; until then, CLI exports `VAULT_DIR` and validates at runtime.
 - **Testing surface** – `test.agent` described in `AGENTS.md`; unit tests will target stubs as they are introduced.
+
+## Someday / Maybe / Spikes
+
+- **Command-local help** – Allow `/<command> --help` shortcuts to show the same manpage content inline.
 - **REPL + llama.cpp** – REPL now differentiates between `:commands` and natural prompts; swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
 - **llama.cpp curl dependency** – provisioning currently installs libcurl headers; investigate compiling without curl (and updating scripts) for fully offline systems.
 - **Shell passthrough mode** – spike on treating Ember as a shell-first experience (command passthrough, planner hotkey, deeper zsh/tmux integration).
