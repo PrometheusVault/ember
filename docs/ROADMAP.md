@@ -17,6 +17,11 @@ Status legend:
 | Raspberry Pi 5 bootstrap | Completed | `scripts/pi_bootstrap.sh` + `templates/ember.service` install a tmux HUD service on tty1 with systemd autologin. |
 | llama.cpp wiring | Completed | Runtime now uses `llama-cpp-python`, supports env overrides, logging, and unit tests without external CLI tooling. |
 | tmux HUD | Planned | Standardize the tmux status line so users always see session/vault/health info even while multitasking. |
+| Rich renderer sizing | Planned | Make `render_rich` respect the active terminal width/height so recorded panels match small screens. |
+| Status command layout | Planned | Rework `/status` tables (diagnostics/agents) for folding columns, pagination, and narrow padding. |
+| Config view readability | Planned | Replace the flat `repr` dump with a tree/YAML view that wraps nested values for handheld displays. |
+| Planner response compaction | Planned | Restructure runtime overview + planner summaries into stacked, narrow-friendly layouts with truncation. |
+| Responsive banner | Planned | Detect terminal width and fall back to a slim single-line banner when box art will overflow. |
 
 ## Phase 2 – Agent + Plugin Ecosystem
 

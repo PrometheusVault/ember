@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from io import StringIO
+import shutil
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from rich.console import Console
@@ -86,10 +87,17 @@ def render_help_table(commands: Sequence[SlashCommand]) -> str:
 def render_rich(render_fn: Callable[[Console], None]) -> str:
     """Render a Rich layout to an ANSI string without printing live."""
 
+    terminal_size = shutil.get_terminal_size(fallback=(80, 24))
+    # Clamp to a reasonable minimum so Rich does not choke on ultra-small widths.
+    width = max(20, terminal_size.columns)
+    height = max(10, terminal_size.lines)
+
     console = Console(
         record=True,
         force_terminal=True,
         color_system="auto",
+        width=width,
+        height=height,
         file=StringIO(),
     )
     render_fn(console)
