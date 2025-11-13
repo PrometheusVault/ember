@@ -147,6 +147,8 @@ via env vars such as `LLAMA_CPP_MAX_TOKENS`, `LLAMA_CPP_THREADS`,
 - Prefer smaller, lower-quantized models (e.g., `llama-3.2-3b-instruct-q4_0.gguf`) for Raspberry Pis
 - Cap generation time with `LLAMA_CPP_TIMEOUT` (defaults to 120s) so the REPL
   reports timeouts instead of hanging.
+- Inside Ember, run `/model` to see the active model and local candidates, or
+  `/model set <path-or-name>` to switch without restarting.
 
 ## Login automation
 

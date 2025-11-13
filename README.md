@@ -17,7 +17,8 @@ python -m ember
 Need an attachable HUD? Run `./ember/ember_dev_run.sh` to keep a tmux session
 named `ember` alive and drop into the REPL on every login. Use `/help` for a
 short command list, `/man <command>` to read the full Markdown manpage in the
-terminal, and `/agents` to inspect which agents are registered/enabled.
+terminal, `/agents` to inspect registered agents, and `/model` to see or switch
+the active llama.cpp model on the fly.
 
 ## Key capabilities
 

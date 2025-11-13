@@ -229,6 +229,7 @@ def main() -> None:
     configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
     llama_session, _ = bootstrap_llama_session(history, router)
+    router.metadata["llama_session"] = llama_session
 
     while True:
         try:

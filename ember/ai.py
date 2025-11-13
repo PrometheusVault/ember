@@ -28,6 +28,12 @@ DEFAULT_DOC_PATHS = (
 )
 COMMAND_PATTERN = re.compile(r"\[\[COMMAND:(.*?)\]\]")
 logger = logging.getLogger(__name__)
+MODEL_SEARCH_DIRS = [
+    Path.cwd() / "models",
+    Path("/srv/ember/models"),
+    Path("/opt/ember-app/models"),
+    Path("/opt/llama.cpp/models"),
+]
 
 DEFAULT_PLANNER_TEMPLATE = dedent(
     """
@@ -202,6 +208,24 @@ class LlamaSession:
 
         self._doc_snippets = list(snippets)
 
+    def set_model_path(self, new_path: Path) -> None:
+        """Update the preferred model path and drop the cached client."""
+
+        self.model_path = new_path
+        self.llama_client = None
+
+    def list_available_models(self) -> List[Path]:
+        return _discover_models()
+
+    def resolve_model_identifier(self, identifier: str) -> Optional[Path]:
+        candidate = Path(identifier).expanduser()
+        if candidate.exists():
+            return candidate
+        for discovered in self.list_available_models():
+            if discovered.name == identifier:
+                return discovered
+        return None
+
     def record_execution(self, log: CommandExecutionLog) -> None:
         """Append a command result to the rolling history."""
 
@@ -363,18 +387,13 @@ class LlamaSession:
             candidates.append(Path(env_value).expanduser())
         candidates.append(self.model_path)
 
-        model_dirs: List[Path] = [
-            Path.cwd() / "models",
-            Path("/srv/ember/models"),
-            Path("/opt/ember-app/models"),
-            Path("/opt/llama.cpp/models"),
-        ]
-
         env_model_dir = os.environ.get("LLAMA_CPP_MODEL_DIR")
         if env_model_dir:
-            model_dirs.insert(0, Path(env_model_dir).expanduser())
+            search_dirs = [Path(env_model_dir).expanduser(), *MODEL_SEARCH_DIRS]
+        else:
+            search_dirs = MODEL_SEARCH_DIRS
 
-        for directory in model_dirs:
+        for directory in search_dirs:
             if directory and directory.exists():
                 ggufs = sorted(directory.glob("*.gguf"))
                 bins = sorted(directory.glob("*.bin"))
@@ -464,3 +483,18 @@ class LlamaSession:
                             except json.JSONDecodeError:
                                 continue
         return None
+
+
+def _discover_models() -> List[Path]:
+    seen: set[str] = set()
+    models: List[Path] = []
+    for directory in MODEL_SEARCH_DIRS:
+        if directory.exists():
+            for pattern in ("*.gguf", "*.bin"):
+                for candidate in sorted(directory.glob(pattern)):
+                    key = str(candidate.resolve())
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    models.append(candidate)
+    return models

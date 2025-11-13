@@ -2,7 +2,7 @@ runtime:
   name: Ember
   auto_restart: true
 logging:
-  level: INFO
+  level: DEBUG
 agents:
   enabled:
     - core.agent
