@@ -16,7 +16,7 @@ try:
     import readline
 except ImportError:  # pragma: no cover
     readline = None
-from textwrap import dedent
+from shutil import get_terminal_size
 from typing import Callable, Dict, List, Sequence
 
 from rich.console import Console
@@ -56,15 +56,31 @@ def _log_path_within_vault(log_path: Path, vault_dir: Path) -> bool:
 def print_banner() -> None:
     """Print the runtime header so operators know where Ember is pointed."""
 
-    banner = dedent(
-        f"""
-        ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃  Prometheus Vault – Ember (dev stub)      ┃
-        ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-        Vault dir : {VAULT_DIR}
-        Mode      : {EMBER_MODE}
-        """
-    ).strip()
+    terminal_width = get_terminal_size(fallback=(80, 24)).columns
+
+    def _wide_banner() -> str:
+        inner_width = 78
+        title = "PROMETHEUS VAULT :: EMBER"
+        slogan = "survive ◇ record ◇ rebuild"
+
+        def _line(content: str = "") -> str:
+            return f"║{content.center(inner_width)}║"
+
+        lines = [
+            "╔" + "═" * inner_width + "╗",
+            _line(),
+            _line(title),
+            _line(slogan),
+            _line(),
+            "╚" + "═" * inner_width + "╝",
+        ]
+        return "\n".join(lines)
+
+    def _narrow_banner() -> str:
+        return "Prometheus Vault :: Ember"
+
+    banner = _wide_banner() if terminal_width >= 80 else _narrow_banner()
+
     print(banner)
     print()
 
@@ -211,17 +227,12 @@ def main() -> None:
                 source=log_path,
             )
         )
-    emit_configuration_report(config_bundle)
     bootstrap_agents(config_bundle)
     logger.info("Logging initialized at %s", log_path)
     router = build_router(config_bundle)
     configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
-    llama_session, doc_count = bootstrap_llama_session(history, router)
-    show_runtime_overview(console, llama_session, doc_count)
-
-    print("Type '/help' for runtime commands; any other text is sent to llama.cpp.")
-    print("Use 'quit' or 'exit' to leave.\n")
+    llama_session, _ = bootstrap_llama_session(history, router)
 
     while True:
         try:

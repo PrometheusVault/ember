@@ -17,11 +17,12 @@ Status legend:
 | Raspberry Pi 5 bootstrap | Completed | `scripts/pi_bootstrap.sh` + `templates/ember.service` install a tmux HUD service on tty1 with systemd autologin. |
 | llama.cpp wiring | Completed | Runtime now uses `llama-cpp-python`, supports env overrides, logging, and unit tests without external CLI tooling. |
 | tmux HUD | Planned | Standardize the tmux status line so users always see session/vault/health info even while multitasking. |
-| Rich renderer sizing | Planned | Make `render_rich` respect the active terminal width/height so recorded panels match small screens. |
-| Status command layout | Planned | Rework `/status` tables (diagnostics/agents) for folding columns, pagination, and narrow padding. |
-| Config view readability | Planned | Replace the flat `repr` dump with a tree/YAML view that wraps nested values for handheld displays. |
-| Planner response compaction | Planned | Restructure runtime overview + planner summaries into stacked, narrow-friendly layouts with truncation. |
-| Responsive banner | Planned | Detect terminal width and fall back to a slim single-line banner when box art will overflow. |
+| Rich renderer sizing | Completed | `render_rich` now captures terminal width/height so recorded Rich layouts match small displays. |
+| Status command layout | Completed | `/status` uses section filters, pagination hints, and folding columns for handheld screens. |
+| Config view readability | Completed | `/config` renders a Rich tree and optional YAML view with truncated scalars. |
+| Planner response compaction | Completed | Runtime overview + planner/final panels use stacked grids and bullet lists for narrow terminals. |
+| Slash command manpages | Planned | Add detailed `/help <command>` (or `<command> help`) output with flags, arguments, and examples mirroring manpages. |
+| Responsive banner | Completed | Wide terminals show a centered BBS-style box with slogan; narrow screens fall back to plain text. |
 
 ## Phase 2 – Agent + Plugin Ecosystem
 
