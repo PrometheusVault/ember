@@ -12,7 +12,7 @@
      - [x] Register `toolchain.agent` for build/dev commands exposure (manifest + docs + readiness checks).
      - [x] Register `test.agent` once scaffolding exists so CI status surfaces live (config + docs + reports).
      - [x] Register `plugin.agent` and confirm dynamic loaders publish state (manifest + docs delivered).
-     - [ ] Register `update.agent` with secure-update context + last run result.
+     - [x] Register `update.agent` with secure-update context + last run result (git readiness + docs).
 
 ## Backlog (highest priority first)
 

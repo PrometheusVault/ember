@@ -102,6 +102,14 @@ operator guide. Field notes below summarize the day-to-day workflow.
   false` or remove the agent from the enabled list. Diagnostics warn when a
   manifest is malformed so you can correct it before enabling the plugin.
 
+### Update agent readiness
+
+- Enable `update.agent` on nodes that track repo freshness. It reports the git
+  branch, abbreviated commit, and whether the working tree is clean.
+- Use `/agents` to confirm you’re on an allowed branch (defaults to `main`/`master`).
+- Optionally set `update.fetch: true` to run `git fetch --dry-run` so the agent
+  can flag when upstream commits exist before you trigger a manual update.
+
 ### Configure command (Alpine + Raspberry Pi)
 
 - Run `sudo make configure` (or `sudo ./scripts/configure_system.sh`) on any

@@ -177,7 +177,27 @@ plugin:
 - `/agents` reports any parsing errors as `status=invalid` and logs a diagnostic
   so operators can fix malformed manifests quickly.
 
-## 7. Logging configuration
+## 7. Update agent settings
+
+`update.agent` summarizes git status so operators can decide when to run future
+update workflows.
+
+```yaml
+update:
+  enabled: false
+  allowed_branches:
+    - main
+  fetch: false
+```
+
+- Set `enabled: true` on monitoring/CI nodes or when testing update flows.
+- `allowed_branches` marks which branches are safe for auto-update. Being on a
+  different branch sets `status=degraded`.
+- `fetch: true` runs `git fetch --dry-run` so the agent can report whether new
+  commits exist without modifying the working tree.
+- Full guidance lives in `docs/agents/update.md`.
+
+## 8. Logging configuration
 
 - `logging.level` controls the baseline verbosity.
 - Ember writes to `$VAULT_DIR/logs/agents/core.log` with rotation. If the vault
@@ -188,7 +208,7 @@ plugin:
 
 ---
 
-## 8. Agent enablement and overrides
+## 9. Agent enablement and overrides
 
 The agent registry reads the `agents` block to decide which handlers run:
 
@@ -216,7 +236,7 @@ top-level key so overrides remain declarative and straightforward to audit.
 
 ---
 
-## 9. Environment variables cheat sheet
+## 10. Environment variables cheat sheet
 
 These are read during bootstrap or by helper scripts; set them in your shell,
 systemd unit, or tmux profile as needed:
@@ -237,7 +257,7 @@ systemd/rc files under `/etc` if you need persistent overrides on bare metal.
 
 ---
 
-## 10. Troubleshooting & verification
+## 11. Troubleshooting & verification
 
 1. Run `/status` in the REPL to inspect diagnostics, log paths, and agent
    results.

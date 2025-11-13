@@ -14,6 +14,10 @@ test:
   enabled: false
   command: pytest -q
   report_path: state/test-agent.json
+update:
+  enabled: false
+  allowed_branches:
+    - main
 network:
   preferred_interfaces:
     - eth0

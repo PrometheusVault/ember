@@ -225,6 +225,30 @@ test:
 **Outputs:** Updated binaries or configs
 **Dependencies:** `network.agent`, `core.agent`
 
+**Developer notes:** Current implementation surfaces git readiness so future
+auto-update flows know whether it is safe to pull:
+
+```yaml
+update:
+  enabled: false
+  allowed_branches:
+    - main
+    - release
+  fetch: false           # dry-run fetch for diagnostics when true
+```
+
+- Set `enabled: true` on CI or management nodes that monitor repo state.
+- `allowed_branches` defines which branches are eligible for automated updates;
+  landing on an unexpected branch downgrades status to `degraded`.
+- `fetch: true` issues `git fetch --dry-run` to detect new commits (without
+  applying them). See `docs/agents/update.md` for extension plans.
+
+**Operator notes:** `/agents` displays branch, abbreviated commit, dirty flag,
+and whether the working tree is on an allowed branch before issuing update
+commands. Keep the repo clean (no local modifications) before running
+`git pull`/future update flows to avoid merge conflicts. Disable the agent on
+production nodes where repo state is intentionally frozen.
+
 ---
 
 ### 🧩 7. `plugin.agent`

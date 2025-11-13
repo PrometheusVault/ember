@@ -6,6 +6,7 @@ from .provision import run_provision_agent
 from .registry import AgentDefinition, AgentRegistry
 from .test_runner import run_test_agent
 from .toolchain import run_toolchain_agent
+from .update_agent import run_update_agent
 
 REGISTRY = AgentRegistry()
 REGISTRY.register(
@@ -49,6 +50,15 @@ REGISTRY.register(
         handler=run_plugin_agent,
         triggers=("bootstrap",),
         requires_ready=False,
+    )
+)
+REGISTRY.register(
+    AgentDefinition(
+        name="update.agent",
+        description="Summarize git status/branch readiness for updates.",
+        handler=run_update_agent,
+        triggers=("bootstrap",),
+        default_enabled=False,
     )
 )
 

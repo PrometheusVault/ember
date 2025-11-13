@@ -41,9 +41,9 @@ working on a fully offline Raspberry Pi.
   writes a state file under `state/`. The output is visible via `/status`.
 - **Active agents** – `network.agent` (connectivity inventory),
   `provision.agent` (vault layout), `toolchain.agent` (developer tooling),
-  `test.agent` (optional CI runs), and `plugin.agent` (manifest discovery) are
-  registered today. Future additions reuse the same registry plumbing as they
-  land.
+  `test.agent` (optional CI runs), `plugin.agent` (manifest discovery), and
+  `update.agent` (git readiness) are registered today. Future additions reuse
+  the same registry plumbing as they land.
 
 ## 3. Configuration touchpoints
 

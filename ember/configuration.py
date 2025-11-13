@@ -31,6 +31,7 @@ DEFAULT_PLUGIN_DIRS: List[str] = [
     "plugins",
     "/usr/local/ember/plugins",
 ]
+DEFAULT_UPDATE_BRANCHES: List[str] = ["main", "master"]
 
 
 CONFIG_SCHEMA: SchemaSpec = {
@@ -129,6 +130,19 @@ CONFIG_SCHEMA: SchemaSpec = {
             "report_path": {"type": str, "default": "state/test-agent.json"},
             "timeout": {"type": (int, float), "default": 600},
             "env": {"type": dict, "default": {}},
+        },
+        "default": {},
+    },
+    "update": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": False},
+            "allowed_branches": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: list(DEFAULT_UPDATE_BRANCHES),
+            },
+            "fetch": {"type": bool, "default": False},
         },
         "default": {},
     },
