@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from io import StringIO
 import shutil
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.table import Table
 
 from .configuration import ConfigurationBundle
@@ -68,6 +70,37 @@ class CommandRouter:
 
     def commands(self) -> Sequence[SlashCommand]:
         return [self._commands[name] for name in self.command_names]
+
+    def get(self, command_name: str) -> Optional[SlashCommand]:
+        return self._commands.get(command_name.lower())
+
+    def manpage_path(self, command_name: str) -> Path:
+        docs_dir = Path(self.metadata.get("repo_root", Path.cwd())) / "docs" / "commands"
+        return docs_dir / f"{command_name.lower()}.md"
+
+    def manpage_exists(self, command_name: str) -> bool:
+        return self.manpage_path(command_name).exists()
+
+    def render_manpage(self, command_name: str, paginate: bool = False) -> str:
+        path = self.manpage_path(command_name)
+        if not path.exists():
+            return (
+                f"[man] no manual entry for '{command_name}'. "
+                f"Create docs/commands/{command_name}.md to document this command."
+            )
+
+        content = path.read_text(encoding="utf-8")
+
+        if paginate:
+            console = Console(color_system="auto", highlight=True)
+            with console.pager(styles=False):
+                console.print(Markdown(content), highlight=True, soft_wrap=True)
+            return f"[man] displayed manual for '/{command_name}'."
+
+        def _render(console: Console) -> None:
+            console.print(Markdown(content))
+
+        return render_rich(_render)
 
 
 def render_help_table(commands: Sequence[SlashCommand]) -> str:
