@@ -16,13 +16,14 @@ python -m ember
 
 Need an attachable HUD? Run `./ember/ember_dev_run.sh` to keep a tmux session
 named `ember` alive and drop into the REPL on every login. Use `/help` for a
-short command list and `/man <command>` to read the full Markdown manpage in
-the terminal.
+short command list, `/man <command>` to read the full Markdown manpage in the
+terminal, and `/agents` to inspect which agents are registered/enabled.
 
 ## Key capabilities
 
 - Planner/responder loop powered by `llama.cpp` (local GGUF models)
 - Declarative config (`config/*.yml`) and dynamically loaded agents/plugins
+- Agent registry that controls which agents run (and when) purely via config
 - tmux-based HUD so operators can monitor and control nodes without a GUI
 - Turnkey provisioning script for fresh Alpine images (creates the `ember`
   user, installs dependencies, builds llama, downloads a model, and configures
@@ -33,6 +34,7 @@ the terminal.
 - Operations, provisioning, tmux behavior, and troubleshooting:
   `docs/operations.md`
 - Agent responsibilities and relationships: `AGENTS.md`
+- System architecture overview (planner, agents, registry): `docs/architecture.md`
 - Roadmap and long-term planning: `docs/ROADMAP.md`
 - Configuration keys, env vars, and offline editing tips: `docs/configuration.md`
 - Fresh Alpine-on-Raspberry Pi install walkthrough: `docs/install_alpine_pi.md`

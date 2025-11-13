@@ -89,24 +89,29 @@ completed successfully (`ember/app.py:110-151`).
 
 ## 5. Agent enablement and overrides
 
-- Toggle agents by editing the `agents.enabled` list. Order does not matter.
-- To add machine-specific agents, create a vault override file:
+The agent registry reads the `agents` block to decide which handlers run:
+
+```yaml
+agents:
+  enabled:
+    - provision.agent
+    - network.agent
+  disabled:
+    - update.agent
+```
+
+- If `agents.enabled` is provided, only those names are executed (all others are
+  skipped, regardless of their default).
+- Otherwise each agent follows its `default_enabled` flag unless it appears in
+  `agents.disabled`.
+- Create overrides under the vault to customize individual machines:
 
   ```bash
   vim "$VAULT_DIR/config/20-agents.yml"
   ```
 
-  ```yaml
-  agents:
-    enabled:
-      - core.agent
-      - network.agent
-      - provision.agent
-      - toolchain.agent
-  ```
-
-- Future agent-specific settings will live under their own top-level key (e.g.,
-  `metrics:`). This keeps overrides declarative and discoverable.
+Future agent-specific settings (e.g., `metrics:`) will live under their own
+top-level key so overrides remain declarative and straightforward to audit.
 
 ---
 

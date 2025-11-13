@@ -27,6 +27,38 @@ This file defines all active **agents**, their **responsibilities**, and **inter
 
 ---
 
+## 🗂️ Agent Registry
+
+All agents register themselves with a central registry (`ember/agents/registry.py`).
+At startup the registry evaluates two things before an agent runs:
+
+1. **Enablement** – Controlled via configuration:
+   ```yaml
+   agents:
+     enabled:
+       - provision.agent
+       - network.agent
+     disabled:
+       - update.agent
+   ```
+   If `agents.enabled` is provided, only names in that list run. Otherwise every
+   agent defaults to its own `default_enabled` flag unless it appears in
+   `agents.disabled`.
+2. **Readiness** – Agents marked `requires_ready=True` automatically skip when
+   the configuration bundle is still `missing`/`invalid`.
+
+Each agent contributes metadata (name, description, triggers, handler) so it can
+be inspected via `/status` or extended later by plugin loaders.
+
+### Inspecting agent state
+
+- `/agents` – REPL command that displays every registered agent, whether it is
+  currently enabled, plus the latest result recorded by the registry.
+- `/status` – Includes the latest run data under the “Agents” panel alongside
+  other diagnostics.
+
+---
+
 ## 👥 Agents
 
 Each agent is defined by:
@@ -184,4 +216,3 @@ make test
 
 # Stop everything
 make stop
-

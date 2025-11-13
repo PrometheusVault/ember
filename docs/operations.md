@@ -97,6 +97,14 @@ cleared. Rotate or ship the log by managing the files under the vault’s
 `/vault` inside Docker without a bind mount), Ember falls back to
 `./.ember_runtime/logs/agents/core.log` and surfaces a warning at startup.
 
+## Inspecting agents
+
+- Run `/agents` to see every registered agent, whether it is currently enabled
+  (per the `agents.enabled`/`agents.disabled` lists), and the latest run status
+  captured by the registry.
+- Agent output is also visible via `/status`, but `/agents` focuses
+  specifically on the registry metadata.
+
 ## Slash commands, help, and manpages
 
 - Type `/help` in the REPL to see the currently registered commands.

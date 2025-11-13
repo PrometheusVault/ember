@@ -23,7 +23,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from .agents.provision import run_provision_agent
+from .agents import REGISTRY
 from .ai import (
     CommandExecutionLog,
     DocumentationContext,
@@ -83,18 +83,6 @@ def print_banner() -> None:
 
     print(banner)
     print()
-
-
-def _agent_enabled(config: ConfigurationBundle, agent_name: str) -> bool:
-    agents_config = config.merged.get("agents", {}) if config.merged else {}
-    enabled = agents_config.get("enabled", [])
-    if isinstance(enabled, str):
-        enabled = [enabled]
-    try:
-        normalized = {str(agent).strip().lower() for agent in enabled}
-    except TypeError:
-        normalized = set()
-    return agent_name.lower() in normalized
 
 
 def _format_command_block(
@@ -292,16 +280,9 @@ def main() -> None:
 def bootstrap_agents(config_bundle: ConfigurationBundle) -> None:
     """Invoke enabled agents that should run during startup."""
 
-    if config_bundle.status != "ready":
-        logger.info(
-            "Skipping agent bootstrap because configuration status is '%s'.",
-            config_bundle.status,
-        )
-        return
-
-    if _agent_enabled(config_bundle, "provision.agent"):
-        result = run_provision_agent(config_bundle)
-        config_bundle.agent_state["provision.agent"] = result.to_dict()
+    results = REGISTRY.run(config_bundle, trigger="bootstrap")
+    if results:
+        config_bundle.agent_state.update(results)
 
 
 def show_runtime_overview(
