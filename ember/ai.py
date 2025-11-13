@@ -21,11 +21,19 @@ else:  # pragma: no cover
     LLAMA_IMPORT_ERROR = None
 
 
-DEFAULT_DOC_PATHS = (
-    Path("README.md"),
-    Path("AGENTS.md"),
-    Path("docs/ROADMAP.md"),
-)
+def _default_doc_paths() -> tuple[Path, ...]:
+    """Prefer per-command docs; omit legacy README/ROADMAP fallbacks entirely."""
+
+    commands_dir = Path("docs/commands")
+    if commands_dir.exists():
+        command_docs = sorted(p for p in commands_dir.glob("*.md") if p.is_file())
+        if command_docs:
+            return tuple(command_docs)
+
+    return ()
+
+
+DEFAULT_DOC_PATHS = _default_doc_paths()
 COMMAND_PATTERN = re.compile(r"\[\[COMMAND:(.*?)\]\]")
 logger = logging.getLogger(__name__)
 MODEL_SEARCH_DIRS = [

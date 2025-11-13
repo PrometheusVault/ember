@@ -65,7 +65,11 @@ def test_documentation_context_reads_files(tmp_path: Path):
     (repo / "docs").mkdir()
     (repo / "docs" / "ROADMAP.md").write_text("roadmap", encoding="utf-8")
 
-    ctx = DocumentationContext(repo_root=repo, max_bytes_per_file=4)
+    ctx = DocumentationContext(
+        repo_root=repo,
+        doc_paths=(Path("README.md"), Path("AGENTS.md"), Path("docs/ROADMAP.md")),
+        max_bytes_per_file=4,
+    )
     snippets = ctx.load()
 
     # Each file should be represented and truncated to max_bytes_per_file
