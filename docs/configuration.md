@@ -31,6 +31,11 @@ vim "$VAULT_DIR/config/10-local.yml"
 # 3) restart Ember or run /status to verify the change
 ```
 
+Away from a shell? Use `/config <key>` to inspect a single value or
+`/config <key> <value>` in the REPL to write machine-local overrides into
+`$VAULT_DIR/config/99-cli-overrides.yml` without leaving Ember. The command
+reloads the configuration immediately so follow-up commands see the new value.
+
 ---
 
 ## 2. Schema summary (`config/system.yml`)
