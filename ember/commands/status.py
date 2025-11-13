@@ -50,10 +50,10 @@ def _add_rows_with_limit(
     return len(rows), len(rows) > max_rows
 
 
-def _handler(context: SlashCommandContext, _: List[str]) -> str:
+def _handler(context: SlashCommandContext, args: List[str]) -> str:
     config = context.config
     mode = context.metadata.get("mode", "(unknown)")
-    sections, show_all = _resolve_sections(_)
+    sections, show_all = _resolve_sections(args)
 
     def _render_summary(console: Console) -> None:
         info = Table.grid(padding=(0, 1))
