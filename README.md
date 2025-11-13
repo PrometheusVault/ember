@@ -15,7 +15,9 @@ python -m ember
 ```
 
 Need an attachable HUD? Run `./ember/ember_dev_run.sh` to keep a tmux session
-named `ember` alive and drop into the REPL on every login.
+named `ember` alive and drop into the REPL on every login. Use `/help` for a
+short command list and `/man <command>` to read the full Markdown manpage in
+the terminal.
 
 ## Key capabilities
 

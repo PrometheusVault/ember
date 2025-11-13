@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from io import StringIO
 import shutil
 from pathlib import Path
@@ -17,6 +18,11 @@ from .configuration import ConfigurationBundle
 SlashCommandHandler = Callable[["SlashCommandContext", List[str]], str]
 
 
+class CommandSource(str, Enum):
+    USER = "user"
+    PLANNER = "planner"
+
+
 @dataclass
 class SlashCommandContext:
     """Context passed into each slash command handler."""
@@ -24,6 +30,7 @@ class SlashCommandContext:
     config: ConfigurationBundle
     router: "CommandRouter"
     metadata: Dict[str, Any] = field(default_factory=dict)
+    source: CommandSource = CommandSource.USER
 
 
 @dataclass
@@ -33,6 +40,8 @@ class SlashCommand:
     name: str
     description: str
     handler: SlashCommandHandler
+    allow_in_planner: bool = True
+    requires_ready: bool = False
 
 
 class CommandRouter:
@@ -50,17 +59,31 @@ class CommandRouter:
     def register(self, command: SlashCommand) -> None:
         self._commands[command.name.lower()] = command
 
-    def handle(self, command_name: str, args: List[str]) -> str:
+    def handle(
+        self,
+        command_name: str,
+        args: List[str],
+        *,
+        source: CommandSource = CommandSource.USER,
+    ) -> str:
         command = self._commands.get(command_name.lower())
         if command is None:
             return (
                 f"[todo] '{command_name}' is not wired yet. "
                 "Documented handlers will populate here as agents land."
             )
+        if source is CommandSource.PLANNER and not command.allow_in_planner:
+            return f"[router] '/{command_name}' is not available to the planner."
+        if command.requires_ready and self.config.status != "ready":
+            return (
+                f"[router] '/{command_name}' requires a ready configuration "
+                f"(current status: {self.config.status})."
+            )
         context = SlashCommandContext(
             config=self.config,
             router=self,
             metadata=self.metadata,
+            source=source,
         )
         return command.handler(context, args)
 
@@ -73,6 +96,14 @@ class CommandRouter:
 
     def get(self, command_name: str) -> Optional[SlashCommand]:
         return self._commands.get(command_name.lower())
+
+    @property
+    def planner_command_names(self) -> Sequence[str]:
+        return sorted(
+            cmd.name
+            for cmd in self._commands.values()
+            if cmd.allow_in_planner
+        )
 
     def manpage_path(self, command_name: str) -> Path:
         docs_dir = Path(self.metadata.get("repo_root", Path.cwd())) / "docs" / "commands"
@@ -141,6 +172,7 @@ __all__ = [
     "SlashCommand",
     "SlashCommandContext",
     "CommandRouter",
+    "CommandSource",
     "render_help_table",
     "render_rich",
 ]

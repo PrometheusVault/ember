@@ -19,4 +19,5 @@ COMMAND = SlashCommand(
     name="help",
     description="List available slash commands.",
     handler=_handler,
+    allow_in_planner=False,
 )

@@ -2,7 +2,7 @@
 
 ## Current Sprint
 
-1. **Command routing layer** – Replace the placeholder dispatcher in `ember/app.py` with a planner-driven router so future agents can hook in cleanly.
+_(none – queue is clear)_
 
 ## Backlog (highest priority first)
 

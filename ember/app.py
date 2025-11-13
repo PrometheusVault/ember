@@ -37,7 +37,7 @@ from .configuration import (
     load_runtime_configuration,
 )
 from .logging_utils import setup_logging
-from .slash_commands import CommandRouter
+from .slash_commands import CommandRouter, CommandSource
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
 EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
@@ -172,6 +172,8 @@ def execute_cli_command(
     router: CommandRouter,
     llama_session: LlamaSession,
     history: List[CommandExecutionLog],
+    *,
+    source: CommandSource = CommandSource.USER,
 ) -> str:
     """Helper that executes an Ember CLI command and records the output."""
 
@@ -181,7 +183,7 @@ def execute_cli_command(
 
     parts = stripped.split()
     command, args = parts[0], parts[1:]
-    result = router.handle(command, args)
+    result = router.handle(command, args, source=source)
     print(result)
 
     log_entry = CommandExecutionLog(command=stripped, output=result)
@@ -201,7 +203,7 @@ def bootstrap_llama_session(
     snippets = doc_context.load()
     llama_session = LlamaSession(
         command_history=history,
-        command_names=list(router.command_names),
+        command_names=list(router.planner_command_names),
     )
     llama_session.prime_with_docs(snippets)
     return llama_session, len(snippets)
@@ -260,7 +262,7 @@ def main() -> None:
             if command_line.lower() in {"quit", "exit"}:
                 print("[Goodbye]")
                 break
-            execute_cli_command(command_line, router, llama_session, history)
+            execute_cli_command(command_line, router, llama_session, history, source=CommandSource.USER)
             continue
 
         logger.info("User prompt: %s", line)
@@ -272,7 +274,13 @@ def main() -> None:
             show_plan_summary(console, plan)
             tool_chunks = []
             for planned_command in plan.commands:
-                result = execute_cli_command(planned_command, router, llama_session, history)
+                result = execute_cli_command(
+                    planned_command,
+                    router,
+                    llama_session,
+                    history,
+                    source=CommandSource.PLANNER,
+                )
                 tool_chunks.append(f"/{planned_command}\n{result}")
             tool_context = "\n\n".join(tool_chunks)
             final_response = llama_session.respond(line, tool_context)

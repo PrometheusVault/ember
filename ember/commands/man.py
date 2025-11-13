@@ -29,4 +29,5 @@ COMMAND = SlashCommand(
     name="man",
     description="Show the detailed manual for a slash command.",
     handler=_handler,
+    allow_in_planner=False,
 )

@@ -50,4 +50,5 @@ COMMAND = SlashCommand(
     name="update",
     description="Pull latest git changes and rerun the provisioner.",
     handler=_handler,
+    allow_in_planner=False,
 )

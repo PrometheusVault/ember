@@ -9,15 +9,19 @@ see `docs/ROADMAP.md`.
 
 1. The device boots and `python -m ember` is launched (via tmux or a service
    manager such as systemd/OpenRC).
-2. Ember mounts the vault (see `docs/vault.md` for structure), loads local documentation (README, AGENTS, roadmap),
-   and primes `llama.cpp` (via `llama-cpp-python`) with that context.
+2. Ember mounts the vault (see `docs/vault.md` for structure), loads local
+   documentation (README, AGENTS, roadmap), and primes `llama.cpp`
+   (via `llama-cpp-python`) with that context.
 3. The operator lands in the Ember REPL inside a dedicated tmux session. The
    HUD in the status line shows the active session, vault path, and basic
    health so you retain situational awareness while opening panes/windows.
 4. Natural-language prompts flow through `llama.cpp`. Ember first executes a
-   planner prompt (deciding whether to run slash commands). Suggested commands
-   run in-process, their output is captured, and a responder prompt produces
-   the final answer using the latest data.
+   planner prompt. Only commands that are explicitly marked as planner-safe are
+   exposed to that prompt (e.g., `/status`, `/config`). Suggested commands run
+   in-process, their output is captured, and a responder prompt produces the
+   final answer using the latest data. Commands flagged as “interactive-only”
+   (such as `/help`, `/man`, `/update`) can still be issued manually at the
+   REPL but are never triggered automatically.
 
 If bindings or models cannot be found, the REPL emits actionable errors instead
 of crashing so you can correct the configuration and retry.
@@ -92,6 +96,19 @@ cleared. Rotate or ship the log by managing the files under the vault’s
 `logs/agents` directory. If the vault path is not writable (e.g., the default
 `/vault` inside Docker without a bind mount), Ember falls back to
 `./.ember_runtime/logs/agents/core.log` and surfaces a warning at startup.
+
+## Slash commands, help, and manpages
+
+- Type `/help` in the REPL to see the currently registered commands.
+- Run `/man <command>` to open the Markdown manpage (stored in
+  `docs/commands/<command>.md`) inside an ANSI-aware pager. Scroll with the
+  arrow keys/space, press `q` to exit.
+- Append `--help` to future commands once command-local help lands (see
+  `docs/ROADMAP.md`). For now, `/man` is the authoritative reference.
+- Planner-exposed commands are intentionally constrained. If you need a command
+  to be callable by the planner, mark it with `allow_in_planner=True` when it
+  is registered. Interactive-only commands should leave the default (`False`)
+  so the planner cannot run them automatically.
 
 ## Docker workflow
 
