@@ -17,7 +17,7 @@ try:
 except ImportError:  # pragma: no cover
     readline = None
 from textwrap import dedent
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Sequence
 
 from rich.console import Console
 from rich.panel import Panel
@@ -79,6 +79,22 @@ def _agent_enabled(config: ConfigurationBundle, agent_name: str) -> bool:
     except TypeError:
         normalized = set()
     return agent_name.lower() in normalized
+
+
+def _format_command_block(
+    commands: Sequence[str],
+    *,
+    limit: int | None = None,
+    bullet: bool = False,
+) -> str:
+    if not commands:
+        return "(none)"
+    subset = list(commands if limit is None else commands[:limit])
+    prefix = "• " if bullet else ""
+    lines = [f"{prefix}/{cmd}" for cmd in subset]
+    if limit is not None and len(commands) > limit:
+        lines.append("…")
+    return "\n".join(lines)
 
 
 def build_router(config: ConfigurationBundle) -> CommandRouter:
@@ -276,30 +292,47 @@ def show_runtime_overview(
 ) -> None:
     """Render a small panel summarizing current runtime settings."""
 
-    table = Table.grid(padding=(0, 1))
+    table = Table.grid(expand=True, padding=(0, 1))
+    table.add_column(style="bold", no_wrap=True)
+    table.add_column()
     table.add_row("Model", str(session.model_path.name))
     table.add_row("Max tokens", str(session.max_tokens))
     table.add_row("Threads", str(session.n_threads))
     table.add_row("Docs cached", str(doc_count))
-    commands_preview = ", ".join(f"/{cmd}" for cmd in session.command_names[:6])
-    if len(session.command_names) > 6:
-        commands_preview += " …"
-    table.add_row("Commands", commands_preview or "(none)")
+    table.add_row(
+        "Commands",
+        _format_command_block(session.command_names, limit=5),
+    )
 
-    console.print(Panel(table, title="Ember Runtime", border_style="cyan"))
+    console.print(
+        Panel(
+            table,
+            title="Ember Runtime",
+            border_style="cyan",
+            padding=(0, 1),
+        )
+    )
 
 
 def show_plan_summary(console: Console, plan: LlamaPlan) -> None:
     """Display the planner's intent before tools run."""
 
-    commands_text = ", ".join(f"/{cmd}" for cmd in plan.commands) or "None"
     preview = plan.response.strip() or "(planner provided no notes)"
+    body = Table.grid(expand=True, padding=(0, 1))
+    body.add_column(style="bold", no_wrap=True)
+    body.add_column()
+    body.add_row("Notes", preview)
+    body.add_row(
+        "Commands",
+        _format_command_block(plan.commands, bullet=True),
+    )
 
     console.print(
         Panel(
-            f"[bold]Planner notes[/bold]\n{preview}\n\n[bold]Commands to run[/bold]\n{commands_text}",
+            body,
             border_style="yellow",
             title="Planner",
+            padding=(0, 1),
         )
     )
 
@@ -311,14 +344,21 @@ def show_final_response(
 ) -> None:
     """Render the final conversational answer."""
 
-    commands_text = ", ".join(f"/{cmd}" for cmd in commands_run) or "None"
     preview = response.strip() or "(no response)"
-    console.print(f"[bold cyan]Ember>[/] {preview}")
+    console.print(
+        Panel(
+            preview,
+            border_style="cyan",
+            title="Ember",
+            padding=(0, 1),
+        )
+    )
     if commands_run:
         console.print(
             Panel(
-                f"[bold]Commands run[/bold]\n{commands_text}",
+                _format_command_block(commands_run, bullet=True),
                 border_style="blue",
                 title="Tools",
+                padding=(0, 1),
             )
         )
