@@ -26,7 +26,7 @@ RUN git clone --depth=1 https://github.com/ggerganov/llama.cpp.git /opt/llama.cp
 
 # Create app user
 RUN useradd -ms /bin/bash ember
-RUN chown -R ember:ember /opt/llama.cpp
+RUN mkdir -p /vault && chown -R ember:ember /vault && chown -R ember:ember /opt/llama.cpp
 USER ember
 
 WORKDIR /opt/ember-app

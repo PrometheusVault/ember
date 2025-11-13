@@ -15,6 +15,9 @@ PROJECT_ROOT    := $(shell pwd)
 UID             := $(shell id -u)
 GID             := $(shell id -g)
 
+# Persistent vault volume for dev workflow (override with VAULT_VOLUME=...)
+VAULT_VOLUME    ?= ember-dev-vault
+
 # Default port mappings (override with `make dev PORTS="..."`)
 PORTS           ?= -p 3000:3000
 
@@ -87,6 +90,7 @@ help: ## Show this help message
 	@echo "  PORTS           ($(PORTS))"
 	@echo "  ENV_VARS        ($(ENV_VARS))"
 	@echo "  TEST_CMD        ($(TEST_CMD))"
+	@echo "  VAULT_VOLUME    ($(VAULT_VOLUME)) name of docker volume mounted at /vault"
 	@echo "  MODEL           (make repl) path inside container to GGUF, e.g. MODEL=/srv/ember/models/foo.gguf"
 	@echo "  LLAMA_CPP_*     (make repl) e.g. LLAMA_CPP_MAX_TOKENS=64 LLAMA_CPP_TIMEOUT=180"
 
@@ -103,11 +107,13 @@ rebuild: ## Rebuild the dev image without using cache
 		-t $(IMAGE_NAME):$(IMAGE_TAG) \
 		.
 
-dev: ## Start dev container (detached) with source mounted
+dev: ## Start dev container (detached) with source + vault mounted
+	@docker volume inspect $(VAULT_VOLUME) >/dev/null 2>&1 || docker volume create $(VAULT_VOLUME) >/dev/null
 	docker run -d --rm \
 		--name $(CONTAINER_NAME) \
 		$(PORTS) \
 		-v $(PROJECT_ROOT):$(WORKDIR) \
+		-v $(VAULT_VOLUME):/vault \
 		-w $(WORKDIR) \
 		-e HOST_UID=$(UID) \
 		-e HOST_GID=$(GID) \
@@ -115,10 +121,12 @@ dev: ## Start dev container (detached) with source mounted
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
 run: ## Run container in foreground (good for CI or quick checks)
+	@docker volume inspect $(VAULT_VOLUME) >/dev/null 2>&1 || docker volume create $(VAULT_VOLUME) >/dev/null
 	docker run --rm \
 		--name $(CONTAINER_NAME) \
 		$(PORTS) \
 		-v $(PROJECT_ROOT):$(WORKDIR) \
+		-v $(VAULT_VOLUME):/vault \
 		-w $(WORKDIR) \
 		-e HOST_UID=$(UID) \
 		-e HOST_GID=$(GID) \

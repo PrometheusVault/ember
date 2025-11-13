@@ -52,8 +52,12 @@ before proceeding.
 
 ## Selecting a vault path
 
-- **Docker/dev containers**: The `Dockerfile` sets `VAULT_DIR=/vault`. Use
-  `ENV_VARS="-e VAULT_DIR=/srv/ember/vault"` with `make dev` to override.
+- **Docker/dev containers**: The `Dockerfile` sets `VAULT_DIR=/vault`. `make dev`
+  now auto-creates a persistent Docker volume (default `ember-dev-vault`) and
+  mounts it at `/vault` so config, logs, and models survive container rebuilds
+  exactly like production. Override the volume name with
+  `VAULT_VOLUME=my-node-vault make dev`, or override the path entirely via
+  `ENV_VARS="-e VAULT_DIR=/srv/ember/vault"` if you need a bind mount instead.
 - **Bare metal**: `scripts/provision.sh` configures `/home/ember/vault` by
   default. Override with `EMBER_VAULT_DIR` before running the script.
 - **Ad hoc sessions**: Export `VAULT_DIR=/path/to/vault && python -m ember`.

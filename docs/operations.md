@@ -256,5 +256,8 @@ plain shell for repairs.
 - `ModuleNotFoundError`: confirm the virtualenv is active and `pip install -r`
   `requirements.txt` completed without errors.
 - Need the legacy Docker flow? `make build && make dev` uses the `Dockerfile`,
-  mounts the repo at `/srv/ember`, and keeps the container alive (`sleep
-  infinity`) so you can attach with `docker exec -it ember-dev bash`.
+  mounts the repo at `/srv/ember`, mounts a persistent Docker volume at `/vault`
+  (default name `ember-dev-vault`), and keeps the container alive (`sleep
+  infinity`) so you can attach with `docker exec -it ember-dev bash`. Override
+  the vault volume with `VAULT_VOLUME=my-node-vault make dev` if you want
+  multiple isolated dev vaults.
