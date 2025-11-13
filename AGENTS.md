@@ -87,8 +87,35 @@ Each agent is defined by:
 **Responsibility:** Detects, configures, and maintains local network connectivity for Ember and dependent modules.
 **Triggers:** Boot, interface changes, manual refresh
 **Inputs:** OS network interfaces, `network.yml`
-**Outputs:** Active IP, routes, DNS info
+**Outputs:** Active IP, routes, DNS info (`/agents` exposes `primary_interface`, interface inventory, DNS sources, and connectivity checks)
 **Dependencies:** None
+
+**Developer notes:** Configure behavior under the `network` block in `config/system.yml` or a vault override. Keys include:
+
+```yaml
+network:
+  enabled: true
+  preferred_interfaces:
+    - eth0
+    - wlan0
+  include_loopback: false
+  connectivity_checks:
+    - 1.1.1.1:53
+  connectivity_timeout: 1.0
+  dns_paths:
+    - /etc/resolv.conf
+```
+
+- When `preferred_interfaces` is populated the agent prioritizes those names when reporting `primary_interface` to the REPL and `/status`.
+- `connectivity_checks` are optional host[:port] probes (TCP) so offline nodes never block; leave empty on fully air-gapped rigs.
+
+**Operator notes:** Run `/agents` or `/status` to confirm `network.agent` sees at least one `is_up` interface. The result includes:
+
+- Interface list with IPv4/IPv6/MAC records so you can copy addresses without leaving the REPL.
+- DNS sources from the configured `dns_paths` so you know which resolver file is active.
+- Connectivity summary (`connectivity n/m targets`) to validate WAN reachability before triggering updates or tool downloads.
+
+If networking is intentionally unavailable, leave the agent enabled so dependent services see an explicit “degraded” status, or add it to `agents.disabled` for that node.
 
 ---
 

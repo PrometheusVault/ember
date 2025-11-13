@@ -5,7 +5,14 @@
 1. **Agent registry** – Normalize agent metadata/interfaces so `core.agent` can query capabilities.
    - `/agents` slash command to list metadata + latest run state (interactive view).
    - Registry tests + docs (AGENTS.md, architecture) ✅
-   - Hook additional agents as they land (network, toolchain, etc.) so they register once implemented.
+   - Target agents for this sprint: `network.agent`, `provision.agent`, `toolchain.agent`, `test.agent`, `plugin.agent`, `update.agent` (register them sequentially so we can finish one at a time).
+   - Task checklist (update as we land each one):
+     - [x] Register `network.agent` with full metadata + readiness hooks (docs + tests landed).
+     - [ ] Register `provision.agent` so bootstrap flows report via `/agents`.
+     - [ ] Register `toolchain.agent` for build/dev commands exposure.
+     - [ ] Register `test.agent` once scaffolding exists so CI status surfaces live.
+     - [ ] Register `plugin.agent` and confirm dynamic loaders publish state.
+     - [ ] Register `update.agent` with secure-update context + last run result.
 
 ## Backlog (highest priority first)
 

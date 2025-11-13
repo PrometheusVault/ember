@@ -67,6 +67,33 @@ CONFIG_SCHEMA: SchemaSpec = {
         },
         "default": {},
     },
+    "network": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": True},
+            "preferred_interfaces": {
+                "type": list,
+                "item_type": str,
+                "default_factory": list,
+            },
+            "include_loopback": {"type": bool, "default": False},
+            "connectivity_checks": {
+                "type": list,
+                "item_type": str,
+                "default_factory": list,
+            },
+            "connectivity_timeout": {
+                "type": (int, float),
+                "default": 1.0,
+            },
+            "dns_paths": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: ["/etc/resolv.conf"],
+            },
+        },
+        "default": {},
+    },
 }
 
 
@@ -337,10 +364,14 @@ def _validate_section(
                         )
                 target[key] = filtered
         elif expected_type and not isinstance(value, expected_type):
+            if isinstance(expected_type, tuple):
+                type_name = ", ".join(t.__name__ for t in expected_type)
+            else:
+                type_name = expected_type.__name__
             diagnostics.append(
                 Diagnostic(
                     level="error",
-                    message=f"'{child_path}' must be of type {expected_type.__name__}.",
+                    message=f"'{child_path}' must be of type {type_name}.",
                 )
             )
             target[key] = _default_from_spec(spec)

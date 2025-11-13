@@ -4,3 +4,4 @@ pyyaml
 httpx
 llama-cpp-python==0.2.90
 pytest
+psutil

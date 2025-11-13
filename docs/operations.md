@@ -48,6 +48,25 @@ of crashing so you can correct the configuration and retry.
   ```
   Set `skip_env` in the same block if you need a different environment toggle.
 
+### Network agent quick checks
+
+- `network.agent` runs in the same bootstrap pass and never requires the
+  configuration bundle to be `ready`, so you always get a live network report
+  even on half-configured devices.
+- Use `/agents` (or `/status`) to inspect the `primary_interface`, address
+  inventory, DNS sources, and optional connectivity probes. The summary looks
+  like `2 up / 3 total interfaces; primary=eth0; connectivity 1/2 targets`.
+- Set `network.preferred_interfaces` in the repo/vault config so the UI
+  highlights the NIC you care about (e.g., `eth0` on wired racks, `wlan0` on
+  Pi deployments).
+- Leave `network.connectivity_checks` empty on air-gapped hardware so the agent
+  immediately reports `status=degraded` instead of waiting for sockets to time
+  out. Populate it with host[:port] pairs (e.g., `1.1.1.1:53`) when you want a
+  sanity check before attempting model downloads or updates.
+- DNS entries come straight from `network.dns_paths`, defaulting to
+  `/etc/resolv.conf`. Add `/run/systemd/resolve/resolv.conf` if you’re on
+  systemd-resolved to mirror what `dig` or `resolvectl` would show.
+
 ### Configure command (Alpine + Raspberry Pi)
 
 - Run `sudo make configure` (or `sudo ./scripts/configure_system.sh`) on any

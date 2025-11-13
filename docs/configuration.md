@@ -99,7 +99,38 @@ completed successfully (`ember/app.py:110-151`).
 
 ---
 
-## 4. Logging configuration
+## 4. Network agent settings
+
+Use the `network` block to tune how `network.agent` inspects interfaces and
+optionally performs connectivity probes:
+
+```yaml
+network:
+  enabled: true              # disable entirely by setting to false
+  preferred_interfaces:
+    - eth0                   # prioritized when reporting `primary_interface`
+    - wlan0
+  include_loopback: false    # set true to show lo*/loopback adapters
+  connectivity_checks:
+    - 1.1.1.1:53             # optional TCP host[:port] probes
+  connectivity_timeout: 1.0  # seconds per check (floats/ints allowed)
+  dns_paths:
+    - /etc/resolv.conf       # files to scan for `nameserver` entries
+```
+
+- When `connectivity_checks` is empty the agent simply reports interface/DNS
+  state so air-gapped nodes never wait on outbound sockets.
+- Populate `preferred_interfaces` on devices with multiple NICs so `/agents`
+  consistently spotlights the interface you care about first.
+- Override `dns_paths` if your distro stores resolver config elsewhere (e.g.,
+  `/run/systemd/resolve/resolv.conf`). The agent reads every listed file in
+  order and ignores files that are missing.
+
+`network.agent` runs even when the configuration bundle is still marked
+`missing`/`invalid`, meaning it can surface degraded/offline status before the
+rest of the runtime is ready.
+
+## 5. Logging configuration
 
 - `logging.level` controls the baseline verbosity.
 - Ember writes to `$VAULT_DIR/logs/agents/core.log` with rotation. If the vault
@@ -110,7 +141,7 @@ completed successfully (`ember/app.py:110-151`).
 
 ---
 
-## 5. Agent enablement and overrides
+## 6. Agent enablement and overrides
 
 The agent registry reads the `agents` block to decide which handlers run:
 
@@ -138,7 +169,7 @@ top-level key so overrides remain declarative and straightforward to audit.
 
 ---
 
-## 6. Environment variables cheat sheet
+## 7. Environment variables cheat sheet
 
 These are read during bootstrap or by helper scripts; set them in your shell,
 systemd unit, or tmux profile as needed:

@@ -39,9 +39,10 @@ working on a fully offline Raspberry Pi.
   enabled/disabled entirely via YAML.
 - **Provisioning** – `provision.agent` ensures the vault layout exists and
   writes a state file under `state/`. The output is visible via `/status`.
-- **Future slots** – The registry is ready for `network.agent`,
-  `metrics.agent`, `plugin.agent`, etc. The backlog tracks when each agent will
-  be implemented.
+- **Active agents** – `network.agent` (connectivity inventory) and
+  `provision.agent` (vault layout) run on the bootstrap trigger today. Future
+  additions (`metrics.agent`, `plugin.agent`, etc.) will reuse the same
+  registry plumbing as they land.
 
 ## 3. Configuration touchpoints
 
