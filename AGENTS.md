@@ -125,8 +125,28 @@ If networking is intentionally unavailable, leave the agent enabled so dependent
 **Responsibility:** Handles first-boot setup, installs dependencies, and provisions the runtime environment.
 **Triggers:** Boot or configuration change
 **Inputs:** `setup.yml`, environment variables
-**Outputs:** Installed packages, configuration logs
+**Outputs:** Installed packages, configuration logs, vault layout summaries (`state/provision.json`)
 **Dependencies:** `network.agent`
+
+**Developer notes:**
+
+```yaml
+provision:
+  enabled: true
+  skip_env: EMBER_SKIP_PROVISION
+  required_paths:
+    - config
+    - logs
+    - logs/agents
+    - plugins/custom
+  state_file: state/provision.json
+```
+
+- Extend `required_paths` when new subsystems need pre-created directories (e.g., `models/gguf` or `logs/metrics`).
+- Use `EMBER_SKIP_PROVISION=1` to bypass the agent for a single run when iterating on code inside read-only images or CI.
+- Provision writes a JSON summary to `state_file`; unit tests live in `tests/test_provision_agent.py` so contributors can extend behavior safely.
+
+**Operator notes:** `/agents` and `/status` display whether provisioning completed plus how many directories were created/verified. Inspect `$VAULT_DIR/state/provision.json` for timestamps and details when troubleshooting bootstrap issues. The agent respects the `skip_env` toggle so you can recover from vault corruption without rewriting directories on every launch. Provision logs land under `$VAULT_DIR/logs/agents/core.log` with the `ember.provision` logger name.
 
 ---
 

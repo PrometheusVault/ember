@@ -97,6 +97,9 @@ provision:
 `/status` lists each agent’s latest result so you can confirm provisioning
 completed successfully (`ember/app.py:110-151`).
 
+Need the full agent flow? See `docs/agents/provision.md` for developer +
+operator guidance.
+
 ---
 
 ## 4. Network agent settings

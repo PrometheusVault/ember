@@ -8,7 +8,7 @@
    - Target agents for this sprint: `network.agent`, `provision.agent`, `toolchain.agent`, `test.agent`, `plugin.agent`, `update.agent` (register them sequentially so we can finish one at a time).
    - Task checklist (update as we land each one):
      - [x] Register `network.agent` with full metadata + readiness hooks (docs + tests landed).
-     - [ ] Register `provision.agent` so bootstrap flows report via `/agents`.
+     - [x] Register `provision.agent` so bootstrap flows report via `/agents` (docs refreshed, dedicated guide added).
      - [ ] Register `toolchain.agent` for build/dev commands exposure.
      - [ ] Register `test.agent` once scaffolding exists so CI status surfaces live.
      - [ ] Register `plugin.agent` and confirm dynamic loaders publish state.

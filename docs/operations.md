@@ -28,6 +28,9 @@ of crashing so you can correct the configuration and retry.
 
 ### Provision agent on bootstrap
 
+[See `docs/agents/provision.md`](agents/provision.md) for the full developer and
+operator guide. Field notes below summarize the day-to-day workflow.
+
 - During startup the `core.agent` automatically invokes `provision.agent`. The
   agent ensures the vault directory contains the expected layout (logs/,
   logs/agents/, plugins/, models/, state/, etc.) and writes a summary to
