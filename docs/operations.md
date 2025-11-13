@@ -91,6 +91,17 @@ operator guide. Field notes below summarize the day-to-day workflow.
 - Configure the command/timeout via the `test` block. See
   `docs/agents/test.md` for details on workdir overrides and env vars.
 
+### Plugin agent discovery
+
+- Drop plugins under `$VAULT_DIR/plugins/<plugin>/plugin.yml` (or in the repo
+  `/plugins/` directory) and `plugin.agent` will report them automatically.
+- The manifest requires at least `name`; include `description`, `version`, and
+  `entrypoint` for richer `/agents` output. See `docs/agents/plugin.md` for the
+  schema.
+- To disable plugin scanning (e.g., hardened environments) set `plugin.enabled:
+  false` or remove the agent from the enabled list. Diagnostics warn when a
+  manifest is malformed so you can correct it before enabling the plugin.
+
 ### Configure command (Alpine + Raspberry Pi)
 
 - Run `sudo make configure` (or `sudo ./scripts/configure_system.sh`) on any

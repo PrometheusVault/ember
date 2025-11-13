@@ -11,7 +11,7 @@
      - [x] Register `provision.agent` so bootstrap flows report via `/agents` (docs refreshed, dedicated guide added).
      - [x] Register `toolchain.agent` for build/dev commands exposure (manifest + docs + readiness checks).
      - [x] Register `test.agent` once scaffolding exists so CI status surfaces live (config + docs + reports).
-     - [ ] Register `plugin.agent` and confirm dynamic loaders publish state.
+     - [x] Register `plugin.agent` and confirm dynamic loaders publish state (manifest + docs delivered).
      - [ ] Register `update.agent` with secure-update context + last run result.
 
 ## Backlog (highest priority first)

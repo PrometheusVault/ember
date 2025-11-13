@@ -153,7 +153,31 @@ toolchain:
   when `version_command` is specified in the manifest.
 - See `docs/agents/toolchain.md` for the manifest schema and workflow tips.
 
-## 6. Logging configuration
+## 6. Plugin agent settings
+
+`plugin.agent` scans plugin directories for `plugin.yml` manifests so Ember can
+surface available extensions.
+
+```yaml
+plugin:
+  enabled: true
+  manifest_name: plugin.yml
+  directories:
+    - plugins
+    - /usr/local/ember/plugins
+  include_vault: true
+```
+
+- Relative directories resolve against the repo root. Add absolute paths for
+  system-wide plugin drops.
+- When `include_vault` is true the agent scans `$VAULT_DIR/plugins` so field
+  teams can ship plugins without rebuilding the repo.
+- Each plugin directory must contain `plugin.yml` with at least a `name`. See
+  `docs/agents/plugin.md` for the manifest schema.
+- `/agents` reports any parsing errors as `status=invalid` and logs a diagnostic
+  so operators can fix malformed manifests quickly.
+
+## 7. Logging configuration
 
 - `logging.level` controls the baseline verbosity.
 - Ember writes to `$VAULT_DIR/logs/agents/core.log` with rotation. If the vault
@@ -164,7 +188,7 @@ toolchain:
 
 ---
 
-## 7. Agent enablement and overrides
+## 8. Agent enablement and overrides
 
 The agent registry reads the `agents` block to decide which handlers run:
 
@@ -192,7 +216,7 @@ top-level key so overrides remain declarative and straightforward to audit.
 
 ---
 
-## 8. Environment variables cheat sheet
+## 9. Environment variables cheat sheet
 
 These are read during bootstrap or by helper scripts; set them in your shell,
 systemd unit, or tmux profile as needed:
@@ -213,7 +237,7 @@ systemd/rc files under `/etc` if you need persistent overrides on bare metal.
 
 ---
 
-## 9. Troubleshooting & verification
+## 10. Troubleshooting & verification
 
 1. Run `/status` in the REPL to inspect diagnostics, log paths, and agent
    results.

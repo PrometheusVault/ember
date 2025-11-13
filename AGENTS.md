@@ -236,6 +236,32 @@ test:
 **Outputs:** Registered runtime extensions
 **Dependencies:** `core.agent`
 
+**Developer notes:** Configure search paths + manifest names via the `plugin`
+block:
+
+```yaml
+plugin:
+  enabled: true
+  manifest_name: plugin.yml
+  directories:
+    - plugins
+    - /usr/local/ember/plugins
+  include_vault: true
+```
+
+- Each plugin directory should contain `plugin.yml` with at least `name`. Add
+  optional metadata (`version`, `description`, `entrypoint`, `hooks`) to surface
+  richer data in `/agents`.
+- Relative directories resolve against the repo root; set `include_vault: false`
+  if you want to ignore `$VAULT_DIR/plugins` on testing nodes.
+- See `docs/agents/plugin.md` for manifest schema and lifecycle expectations.
+
+**Operator notes:** Drop plugins under `$VAULT_DIR/plugins/<plugin>/plugin.yml`
+  (or the configured directories). `/agents` reports how many plugins were
+  discovered and whether any manifests failed to parse. To disable plugin
+  scanning entirely, add `plugin.agent` to `agents.disabled` or set
+  `plugin.enabled: false` in the config override.
+
 ---
 
 ## 🧬 File and Directory Conventions

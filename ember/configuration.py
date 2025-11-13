@@ -27,6 +27,10 @@ DEFAULT_PROVISION_PATHS: List[str] = [
     "plugins",
     "state",
 ]
+DEFAULT_PLUGIN_DIRS: List[str] = [
+    "plugins",
+    "/usr/local/ember/plugins",
+]
 
 
 CONFIG_SCHEMA: SchemaSpec = {
@@ -99,6 +103,20 @@ CONFIG_SCHEMA: SchemaSpec = {
         "schema": {
             "enabled": {"type": bool, "default": True},
             "manifest": {"type": str, "default": ".toolchain.yml"},
+        },
+        "default": {},
+    },
+    "plugin": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": True},
+            "directories": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: list(DEFAULT_PLUGIN_DIRS),
+            },
+            "manifest_name": {"type": str, "default": "plugin.yml"},
+            "include_vault": {"type": bool, "default": True},
         },
         "default": {},
     },

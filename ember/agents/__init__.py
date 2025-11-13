@@ -1,6 +1,7 @@
 """Agent implementations for the Ember runtime."""
 
 from .network import run_network_agent
+from .plugin_loader import run_plugin_agent
 from .provision import run_provision_agent
 from .registry import AgentDefinition, AgentRegistry
 from .test_runner import run_test_agent
@@ -39,6 +40,15 @@ REGISTRY.register(
         handler=run_test_agent,
         triggers=("bootstrap",),
         default_enabled=False,
+    )
+)
+REGISTRY.register(
+    AgentDefinition(
+        name="plugin.agent",
+        description="Discover plugins from the repo, vault, and system paths.",
+        handler=run_plugin_agent,
+        triggers=("bootstrap",),
+        requires_ready=False,
     )
 )
 
