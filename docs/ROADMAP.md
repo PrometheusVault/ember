@@ -1,58 +1,22 @@
 # Ember Roadmap
 
-Status legend:
+## Current Sprint
 
-- **Planned** – concept approved, design/outcome documented.
-- **Placeholder** – stub code or interface exists; full logic pending.
-- **In Progress** – actively being built.
+1. **Command routing layer** – Replace the placeholder dispatcher in `ember/app.py` with a planner-driven router so future agents can hook in cleanly.
 
-## Phase 1 – Developer Runtime Parity
+## Backlog (highest priority first)
 
-| Feature | Status | Notes |
-| --- | --- | --- |
-| Interactive CLI loop | Placeholder | `ember/app.py` mirrors the eventual planner/actuator loop and accepts commands for now. |
-| Vault-aware configuration | Completed | Vault dir detection, YAML merging, diagnostics, and docs shipped. |
-| Basic logging pipeline | Completed | CLI + planner events now stream to `/logs/agents/core.log` with rotation. |
-| Provisioning hooks | Completed | `core.agent` now triggers `provision.agent` during bootstrap and records the run to `state/provision.json`. |
-| Raspberry Pi 5 bootstrap | Completed | `scripts/pi_bootstrap.sh` + `templates/ember.service` install a tmux HUD service on tty1 with systemd autologin. |
-| llama.cpp wiring | Completed | Runtime now uses `llama-cpp-python`, supports env overrides, logging, and unit tests without external CLI tooling. |
-| tmux HUD | Completed | tmux status line slimmed to battery + timestamp; no redundant session/host/path clutter. |
-| Rich renderer sizing | Completed | `render_rich` now captures terminal width/height so recorded Rich layouts match small displays. |
-| Status command layout | Completed | `/status` uses section filters, pagination hints, and folding columns for handheld screens. |
-| Config view readability | Completed | `/config` renders a Rich tree and optional YAML view with truncated scalars. |
-| Planner response compaction | Completed | Runtime overview + planner/final panels use stacked grids and bullet lists for narrow terminals. |
-| Slash command manpages | Completed | `/man <command>` now renders Markdown docs; roadmap tracks optional inline help separately. |
-| Responsive banner | Completed | Wide terminals show a centered BBS-style box with slogan; narrow screens fall back to plain text. |
-
-## Phase 2 – Agent + Plugin Ecosystem
-
-| Feature | Status | Notes |
-| --- | --- | --- |
-| Agent registry | Planned | Normalize agent metadata/interfaces so `core.agent` can query capabilities. |
-| Plugin loader | Planned | Watch `/plugins` and `/usr/local/ember/plugins` for extensions and register them dynamically. |
-| IPC/message bus | Planned | Define JSON schema for agent-to-agent communication, starting with localhost transport. |
-
-## Phase 3 – Operational Experience
-
-| Feature | Status | Notes |
-| --- | --- | --- |
-| Metrics/telemetry | Planned | Implement `metrics.agent` to collect system stats and expose them locally. |
-| UI dashboard | Planned | Build optional `ui.agent` for local web monitoring tied to the same command API. |
-| Secure updates | Planned | Flesh out `update.agent` with checksum validation and staged rollout support. |
-
-## Locked Follow-ups
-
-- **Command routing layer** – placeholder in `ember/app.py`; will evolve into planner-driven dispatcher.
-- **Configuration loader** – design doc TBD; until then, CLI exports `VAULT_DIR` and validates at runtime.
-- **Testing surface** – `test.agent` described in `AGENTS.md`; unit tests will target stubs as they are introduced.
-
-## Someday / Maybe / Spikes
-
-- **Command-local help** – Allow `/<command> --help` shortcuts to show the same manpage content inline.
-- **REPL + llama.cpp** – REPL now differentiates between `:commands` and natural prompts; swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
-- **llama.cpp curl dependency** – provisioning currently installs libcurl headers; investigate compiling without curl (and updating scripts) for fully offline systems.
-- **Shell passthrough mode** – spike on treating Ember as a shell-first experience (command passthrough, planner hotkey, deeper zsh/tmux integration).
-- **Model download TLS** – provisioning currently invokes curl with `-k` to bypass certificate checks; restore strict SSL handling once we have a signed mirror or pinned CA.
-
-Document any newly agreed feature or constraint here so it can be surfaced in
-future planning discussions and converted into implementation tickets.
+1. **Agent registry** – Normalize agent metadata/interfaces so `core.agent` can query capabilities.
+2. **Configuration loader** – Formalize the design so the CLI can validate configs without manual exports.
+3. **Offline provisioning bundles** – Ensure all dependencies/models/scripts can be staged locally for Raspberry Pi installs with zero network access.
+4. **Testing surface** – Stand up `test.agent` scaffolding; add coverage for the CLI + agents.
+5. **IPC/message bus** – Define JSON schema for agent-to-agent communication, starting with localhost transport.
+6. **Plugin loader** – Watch `/plugins` and `/usr/local/ember/plugins` for extensions and register them dynamically.
+7. **Metrics/telemetry** – Implement `metrics.agent` to collect system stats and expose them locally.
+8. **Secure updates** – Flesh out `update.agent` with checksum validation and staged rollout support (USB/offline friendly).
+9. **Command-local help** – Support `/<command> --help` shortcuts that display the corresponding manpage inline.
+10. **Shell passthrough mode** – Explore a shell-first experience (command passthrough, planner hotkey, tmux integration).
+11. **REPL + llama.cpp** – Swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
+12. **llama.cpp curl dependency** – Investigate building without libcurl to support fully offline systems.
+13. **Model download TLS** – Restore strict SSL handling once we control mirrors or can pin certificates.
+14. **UI dashboard** – Build optional `ui.agent` for local web monitoring tied to the same command API.
