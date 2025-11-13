@@ -159,6 +159,27 @@ provision:
 **Outputs:** Ready-to-use local dev environment
 **Dependencies:** `provision.agent`
 
+**Developer notes:** Tool definitions live in `.toolchain.yml` (see
+`docs/agents/toolchain.md`). Each command entry understands `name`, optional
+`description`, and `version_command`. Python package checks accept either a
+string (`rich`) or a mapping (`{module: llama_cpp, optional: true}`). Point the
+agent at a custom manifest by adding to `config/system.yml`:
+
+```yaml
+toolchain:
+  manifest: .toolchain.yml
+```
+
+Use this file to list every binary or module that `make build`, `make shell`, or
+`scripts/configure_system.sh` rely on so contributors get a single readiness
+report via `/agents`.
+
+**Operator notes:** Run `/agents` to see which commands or Python modules are
+missing on the host. The agent surfaces paths + version strings when possible,
+and reports overall status as `ok`, `degraded`, or `skipped`. Pair it with
+`make configure` (which installs Docker/make/git/etc.) so fresh Raspberry Pi or
+Alpine nodes come online ready for `make build` immediately.
+
 ---
 
 ### 🧪 5. `test.agent`

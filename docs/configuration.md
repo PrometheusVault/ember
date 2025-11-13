@@ -133,7 +133,27 @@ network:
 `missing`/`invalid`, meaning it can surface degraded/offline status before the
 rest of the runtime is ready.
 
-## 5. Logging configuration
+## 5. Toolchain agent settings
+
+`toolchain.agent` reads `.toolchain.yml` (repo root by default) to confirm
+Docker, Make, git, Python dependencies, and environment variables are ready for
+dev workflows.
+
+```yaml
+toolchain:
+  enabled: true
+  manifest: .toolchain.yml   # relative to repo root; absolute paths supported
+```
+
+- Keep `.toolchain.yml` under version control so contributors see which binaries
+  are required for `make build`, `make shell`, and local provisioning.
+- Override the manifest per-host (e.g., drop-in YAML inside `$VAULT_DIR/config`)
+  when staging experimental toolchains.
+- `/agents` shows which requirements are missing and includes version strings
+  when `version_command` is specified in the manifest.
+- See `docs/agents/toolchain.md` for the manifest schema and workflow tips.
+
+## 6. Logging configuration
 
 - `logging.level` controls the baseline verbosity.
 - Ember writes to `$VAULT_DIR/logs/agents/core.log` with rotation. If the vault
@@ -144,7 +164,7 @@ rest of the runtime is ready.
 
 ---
 
-## 6. Agent enablement and overrides
+## 7. Agent enablement and overrides
 
 The agent registry reads the `agents` block to decide which handlers run:
 
@@ -172,7 +192,7 @@ top-level key so overrides remain declarative and straightforward to audit.
 
 ---
 
-## 7. Environment variables cheat sheet
+## 8. Environment variables cheat sheet
 
 These are read during bootstrap or by helper scripts; set them in your shell,
 systemd unit, or tmux profile as needed:
@@ -193,7 +213,7 @@ systemd/rc files under `/etc` if you need persistent overrides on bare metal.
 
 ---
 
-## 7. Troubleshooting & verification
+## 9. Troubleshooting & verification
 
 1. Run `/status` in the REPL to inspect diagnostics, log paths, and agent
    results.

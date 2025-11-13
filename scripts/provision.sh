@@ -45,7 +45,24 @@ apk_bootstrap() {
   log "updating apk indexes"
   apk update >/dev/null
   log "installing system packages"
-  apk add --no-cache python3 py3-pip py3-virtualenv tmux zsh shadow sudo git curl curl-dev build-base cmake linux-headers util-linux bash >/dev/null
+  apk add --no-cache \
+    python3 \
+    py3-pip \
+    py3-virtualenv \
+    tmux \
+    zsh \
+    shadow \
+    sudo \
+    git \
+    curl \
+    curl-dev \
+    build-base \
+    cmake \
+    linux-headers \
+    util-linux \
+    bash \
+    docker \
+    docker-cli >/dev/null
 }
 
 ensure_user() {

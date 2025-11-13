@@ -94,6 +94,14 @@ CONFIG_SCHEMA: SchemaSpec = {
         },
         "default": {},
     },
+    "toolchain": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": True},
+            "manifest": {"type": str, "default": ".toolchain.yml"},
+        },
+        "default": {},
+    },
 }
 
 

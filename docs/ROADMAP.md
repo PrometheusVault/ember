@@ -9,7 +9,7 @@
    - Task checklist (update as we land each one):
      - [x] Register `network.agent` with full metadata + readiness hooks (docs + tests landed).
      - [x] Register `provision.agent` so bootstrap flows report via `/agents` (docs refreshed, dedicated guide added).
-     - [ ] Register `toolchain.agent` for build/dev commands exposure.
+     - [x] Register `toolchain.agent` for build/dev commands exposure (manifest + docs + readiness checks).
      - [ ] Register `test.agent` once scaffolding exists so CI status surfaces live.
      - [ ] Register `plugin.agent` and confirm dynamic loaders publish state.
      - [ ] Register `update.agent` with secure-update context + last run result.

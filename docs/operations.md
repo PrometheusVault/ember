@@ -70,6 +70,17 @@ operator guide. Field notes below summarize the day-to-day workflow.
   `/etc/resolv.conf`. Add `/run/systemd/resolve/resolv.conf` if you’re on
   systemd-resolved to mirror what `dig` or `resolvectl` would show.
 
+### Toolchain agent readiness
+
+- `toolchain.agent` parses `.toolchain.yml` and reports whether Docker, make,
+  git, Python deps, and key files are present. Review `docs/agents/toolchain.md`
+  for the manifest schema.
+- `/agents` shows per-command details (path + version output when configured),
+  so after running `make configure` you can confirm `docker`, `make`, and
+  `git` are ready before invoking `make build`.
+- Update the manifest whenever provisioning scripts learn a new dependency so
+  headless deployments advertise the correct requirements immediately.
+
 ### Configure command (Alpine + Raspberry Pi)
 
 - Run `sudo make configure` (or `sudo ./scripts/configure_system.sh`) on any

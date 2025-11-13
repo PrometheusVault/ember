@@ -54,7 +54,8 @@ apt_bootstrap() {
     libopenblas-dev \
     libffi-dev \
     sudo \
-    util-linux >/dev/null
+    util-linux \
+    docker.io >/dev/null
 }
 
 ensure_user() {

@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     wget \
     curl \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Build llama.cpp so Ember can call it within the container

@@ -8,6 +8,8 @@ agents:
     - core.agent
     - network.agent
     - provision.agent
+toolchain:
+  manifest: .toolchain.yml
 network:
   preferred_interfaces:
     - eth0
