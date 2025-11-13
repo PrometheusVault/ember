@@ -8,7 +8,8 @@ working on a fully offline Raspberry Pi.
 
 1. **Bootstrap**
    - `python -m ember` prints the banner, loads configuration from the repo
-     (`config/*.yml`) plus `$VAULT_DIR/config`, and primes logging.
+     (`config/*.yml`) plus `$VAULT_DIR/config`, validates the merged result
+     against the built-in schema, and primes logging.
    - Enabled agents are registered via `ember/agents/registry.py`. On the
      `bootstrap` trigger the registry executes each agent in order (currently
      just `provision.agent`), storing results in `config_bundle.agent_state` so

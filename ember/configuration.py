@@ -6,7 +6,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Literal, Mapping, MutableMapping, Optional, Tuple
 
 import yaml
 
@@ -15,6 +15,59 @@ DEFAULT_CONFIG_DIR = REPO_ROOT / "config"
 
 DiagnosticLevel = Literal["info", "warning", "error"]
 ConfigurationStatus = Literal["ready", "missing", "invalid"]
+
+
+SchemaSpec = Dict[str, Any]
+
+DEFAULT_PROVISION_PATHS: List[str] = [
+    "config",
+    "logs",
+    "logs/agents",
+    "models",
+    "plugins",
+    "state",
+]
+
+
+CONFIG_SCHEMA: SchemaSpec = {
+    "runtime": {
+        "type": dict,
+        "schema": {
+            "name": {"type": str, "default": "Ember"},
+            "auto_restart": {"type": bool, "default": True},
+        },
+        "default": {},
+    },
+    "logging": {
+        "type": dict,
+        "schema": {
+            "level": {"type": str, "default": "INFO"},
+        },
+        "default": {},
+    },
+    "agents": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": list, "item_type": str, "default_factory": list},
+            "disabled": {"type": list, "item_type": str, "default_factory": list},
+        },
+        "default": {},
+    },
+    "provision": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": True},
+            "skip_env": {"type": str, "default": "EMBER_SKIP_PROVISION"},
+            "required_paths": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: list(DEFAULT_PROVISION_PATHS),
+            },
+            "state_file": {"type": str, "default": "state/provision.json"},
+        },
+        "default": {},
+    },
+}
 
 
 @dataclass
@@ -96,6 +149,8 @@ def load_runtime_configuration(vault_dir: Optional[Path] = None) -> Configuratio
 
     merged = deepcopy(repo_defaults)
     _deep_merge_dicts(merged, vault_overrides)
+
+    _validate_schema(merged, diagnostics)
 
     if status == "ready" and any(diag.level == "error" for diag in diagnostics):
         status = "invalid"
@@ -197,6 +252,99 @@ def _deep_merge_dicts(dest: MutableMapping[str, Any], source: Mapping[str, Any])
             _deep_merge_dicts(dest[key], value)
         else:
             dest[key] = deepcopy(value)
+
+
+def _default_from_spec(spec: SchemaSpec) -> Any:
+    if "default_factory" in spec and callable(spec["default_factory"]):
+        return spec["default_factory"]()
+    return deepcopy(spec.get("default"))
+
+
+def _validate_schema(config: Dict[str, Any], diagnostics: List[Diagnostic]) -> None:
+    _validate_section(config, CONFIG_SCHEMA, "config", diagnostics)
+
+
+def _validate_section(
+    target: Dict[str, Any],
+    schema: SchemaSpec,
+    path: str,
+    diagnostics: List[Diagnostic],
+) -> None:
+    if not isinstance(target, dict):
+        diagnostics.append(
+            Diagnostic(
+                level="error",
+                message=f"Configuration section '{path}' must be a mapping.",
+            )
+        )
+        return
+
+    for key in list(target.keys()):
+        if key not in schema:
+            diagnostics.append(
+                Diagnostic(
+                    level="warning",
+                    message=f"Unknown configuration key '{path}.{key}'.",
+                )
+            )
+
+    for key, spec in schema.items():
+        child_path = f"{path}.{key}"
+        if key not in target:
+            if "default" in spec or "default_factory" in spec:
+                target[key] = _default_from_spec(spec)
+            continue
+
+        value = target[key]
+        expected_type = spec.get("type")
+
+        if expected_type is dict:
+            if not isinstance(value, dict):
+                diagnostics.append(
+                    Diagnostic(
+                        level="error",
+                        message=f"'{child_path}' must be a mapping.",
+                    )
+                )
+                target[key] = _default_from_spec(spec) or {}
+                continue
+            _validate_section(value, spec.get("schema", {}), child_path, diagnostics)
+        elif expected_type is list:
+            if not isinstance(value, list):
+                diagnostics.append(
+                    Diagnostic(
+                        level="error",
+                        message=f"'{child_path}' must be a list.",
+                    )
+                )
+                target[key] = _default_from_spec(spec) or []
+                continue
+            item_type = spec.get("item_type")
+            if item_type is not None:
+                filtered: List[Any] = []
+                for idx, item in enumerate(value):
+                    if isinstance(item, item_type):
+                        filtered.append(item)
+                    else:
+                        diagnostics.append(
+                            Diagnostic(
+                                level="error",
+                                message=(
+                                    f"'{child_path}[{idx}]' must be of type "
+                                    f"{item_type.__name__}."
+                                ),
+                            )
+                        )
+                target[key] = filtered
+        elif expected_type and not isinstance(value, expected_type):
+            diagnostics.append(
+                Diagnostic(
+                    level="error",
+                    message=f"'{child_path}' must be of type {expected_type.__name__}.",
+                )
+            )
+            target[key] = _default_from_spec(spec)
+
 
 
 __all__ = [

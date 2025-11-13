@@ -33,14 +33,26 @@ vim "$VAULT_DIR/config/10-local.yml"
 
 ---
 
-## 2. Default config keys (`config/system.yml`)
+## 2. Schema summary (`config/system.yml`)
 
-| Key | Description | Typical Values |
+Ember now validates the merged configuration against a simple schema. Invalid
+types or unknown keys surface as diagnostics (and `/status` will show
+`status=invalid`). Supported keys:
+
+| Key | Type / Default | Description |
 | --- | --- | --- |
-| `runtime.name` | Friendly display name for the node. | `Ember`, `Vault Edge #7` |
-| `runtime.auto_restart` | Whether `core.agent` should relaunch Ember after crashes. | `true` / `false` |
-| `logging.level` | Default log level passed to `EMBER_LOG_LEVEL` (`ember/app.py:242`). | `INFO`, `DEBUG`, etc. |
-| `agents.enabled` | List of agent identifiers that should bootstrap automatically. Matches `AGENTS.md`. | `core.agent`, `network.agent`, `provision.agent`, ... |
+| `runtime.name` | `str` (default `"Ember"`) | Friendly display name used in prompts/logs. |
+| `runtime.auto_restart` | `bool` (`true`) | Allows `core.agent` or service managers to auto-restart Ember after crashes. |
+| `logging.level` | `str` (`"INFO"`) | Baseline log level; overridable via `EMBER_LOG_LEVEL`. |
+| `agents.enabled` | `list[str]` (empty) | Explicit allow-list; when set, only these agents run. |
+| `agents.disabled` | `list[str]` (empty) | Optional deny-list; handy when relying on defaults. |
+| `provision.enabled` | `bool` (`true`) | Toggle the provisioning agent entirely. |
+| `provision.skip_env` | `str` (`EMBER_SKIP_PROVISION`) | Environment variable that skips one run when set. |
+| `provision.required_paths` | `list[str]` (see defaults in `ProvisionSettings`) | Directories that must exist under the vault. |
+| `provision.state_file` | `str` (`state/provision.json`) | Where provisioning writes its latest summary. |
+
+Unknown top-level keys trigger warnings so you can catch typos before the node
+reboots.
 
 Edit with `vim config/system.yml`, keeping YAML indentation (two spaces).
 
