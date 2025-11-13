@@ -200,10 +200,16 @@ def bootstrap_llama_session(
 def main() -> None:
     """Entry point for `python -m ember`."""
 
-    log_level_name = os.environ.get("EMBER_LOG_LEVEL", "WARNING").upper()
     console = Console()
     print_banner()
     config_bundle = load_runtime_configuration(VAULT_DIR)
+    configured_level = (
+        (config_bundle.merged.get("logging", {}) or {}).get("level")
+        if config_bundle.merged
+        else None
+    )
+    env_level = os.environ.get("EMBER_LOG_LEVEL")
+    log_level_name = (env_level or configured_level or "WARNING").upper()
     log_path = setup_logging(config_bundle.vault_dir, log_level_name)
     config_bundle.log_path = log_path
     if not _log_path_within_vault(log_path, config_bundle.vault_dir):

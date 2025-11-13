@@ -214,23 +214,32 @@ class LlamaSession:
 
         prompt = self._compose_planner_prompt(user_prompt)
         logger.info("Planning response for prompt: %s", user_prompt[:128])
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("[planner prompt]\n%s", prompt)
         try:
             raw_output = self._run_llama(prompt)
         except LlamaInvocationError as exc:
             return LlamaPlan(response=f"[llama.cpp error] {exc}", commands=[])
 
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("[planner raw]\n%s", raw_output)
         commands = self._extract_commands(raw_output)
         response = self._strip_command_markers(raw_output).strip()
         if commands:
-            logger.info("llama suggested commands: %s", commands)
+            logger.debug("Planner suggested commands: %s", commands)
         return LlamaPlan(response=response, commands=commands)
 
     def respond(self, user_prompt: str, tool_outputs: str) -> str:
         """Generate the final conversational response."""
 
         prompt = self._compose_responder_prompt(user_prompt, tool_outputs)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("[responder prompt]\n%s", prompt)
         try:
-            return self._run_llama(prompt)
+            raw = self._run_llama(prompt)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("[responder raw]\n%s", raw)
+            return raw
         except LlamaInvocationError as exc:
             return f"[llama.cpp error] {exc}"
 
@@ -300,7 +309,7 @@ class LlamaSession:
                 raise LlamaInvocationError(str(exc)) from exc
 
         text = completion["choices"][0]["text"].strip()
-        logger.info("llama completed (chars=%s)", len(text))
+        logger.debug("llama completed (chars=%s)", len(text))
         return text
 
     def _ensure_client(self) -> "Llama":

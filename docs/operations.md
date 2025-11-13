@@ -97,6 +97,11 @@ cleared. Rotate or ship the log by managing the files under the vault’s
 `/vault` inside Docker without a bind mount), Ember falls back to
 `./.ember_runtime/logs/agents/core.log` and surfaces a warning at startup.
 
+Need to see exactly what llama.cpp is doing? Set `logging.level: DEBUG` (or run
+`EMBER_LOG_LEVEL=DEBUG python -m ember`) to stream planner prompts, raw model
+output, and responder prompts directly in the REPL. Drop back to `INFO` for a
+quieter day-to-day experience.
+
 ## Inspecting agents
 
 - Run `/agents` to see every registered agent, whether it is currently enabled

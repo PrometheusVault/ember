@@ -17,9 +17,10 @@
 6. **Metrics/telemetry** – Implement `metrics.agent` to collect system stats and expose them locally.
 7. **Secure updates** – Flesh out `update.agent` with checksum validation and staged rollout support (USB/offline friendly).
 8. **Runtime agent toggles** – Allow enabling/disabling agents without restarting (e.g., `/agent enable provision.agent`).
-9. **Command-local help** – Support `/<command> --help` shortcuts that display the corresponding manpage inline.
-10. **Shell passthrough mode** – Explore a shell-first experience (command passthrough, planner hotkey, tmux integration).
-11. **REPL + llama.cpp** – Swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
-12. **llama.cpp curl dependency** – Investigate building without libcurl to support fully offline systems.
-13. **Model download TLS** – Restore strict SSL handling once we control mirrors or can pin certificates.
-14. **UI dashboard** – Build optional `ui.agent` for local web monitoring tied to the same command API.
+9. **Editable /config** – Allow operators to modify config values (e.g., logging level) from within the REPL and persist them back to the vault.
+10. **Command-local help** – Support `/<command> --help` shortcuts that display the corresponding manpage inline.
+11. **Shell passthrough mode** – Explore a shell-first experience (command passthrough, planner hotkey, tmux integration).
+12. **REPL + llama.cpp** – Swap the placeholder planner with real llama.cpp inference on Raspberry Pi images.
+13. **llama.cpp curl dependency** – Investigate building without libcurl to support fully offline systems.
+14. **Model download TLS** – Restore strict SSL handling once we control mirrors or can pin certificates.
+15. **UI dashboard** – Build optional `ui.agent` for local web monitoring tied to the same command API.

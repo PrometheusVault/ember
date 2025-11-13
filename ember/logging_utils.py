@@ -43,6 +43,7 @@ def setup_logging(vault_dir: Path, level: Union[str, int] = logging.WARNING) -> 
     logger.addHandler(console_handler)
     logger.propagate = False
 
+    _silence_third_party()
     return log_path
 
 
@@ -72,6 +73,12 @@ def _reset_handlers(logger: logging.Logger) -> None:
     for handler in list(logger.handlers):
         logger.removeHandler(handler)
         handler.close()
+
+
+def _silence_third_party() -> None:
+    # llama_cpp can be quite verbose; keep it at WARNING unless the operator
+    # explicitly raises logging globally.
+    logging.getLogger("llama_cpp").setLevel(logging.WARNING)
 
 
 __all__ = ["setup_logging", "LOG_SUBPATH", "FALLBACK_ROOT"]

@@ -54,6 +54,12 @@ types or unknown keys surface as diagnostics (and `/status` will show
 Unknown top-level keys trigger warnings so you can catch typos before the node
 reboots.
 
+Tips:
+
+- Set `logging.level: DEBUG` (or export `EMBER_LOG_LEVEL=DEBUG`) to trace
+  planner/responder prompts and llama.cpp interactions directly in the REPL.
+- Leave it at `INFO` for normal usage so only high-level events are surfaced.
+
 Edit with `vim config/system.yml`, keeping YAML indentation (two spaces).
 
 ---
