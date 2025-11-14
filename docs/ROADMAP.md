@@ -16,7 +16,7 @@ _(Complete – planning for next sprint in progress)_
 5. **Metrics/telemetry** – Implement `metrics.agent` to report CPU/RAM/disk in `/status` and feed the planned UI/dashboard.
 6. **Secure updates** – Extend `update.agent` with checksum validation, staged rollouts, and offline media support.
 7. **IPC/message bus** – Define the JSON schema/transport for agent-to-agent communication, starting with localhost pipes.
-8. **Editable /config expansion** – Allow `/config key value` to set lists/mappings, with validation and audit logs.
+8. **Editable /config expansion** – Allow `/config key value` to set lists/mappings; when operators set unknown keys (not present in the default repo config), warn loudly and refuse to write overrides. Add audit logs for successful writes.
 9. **Command-local help** – Support `/<command> --help` shortcuts that render the relevant manpage inline.
 10. **Shell passthrough mode** – Explore a shell-first experience (command passthrough, planner hotkey, tmux integration).
 11. **llama.cpp curl dependency** – Investigate building without libcurl to support fully offline systems.
