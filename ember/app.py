@@ -8,7 +8,6 @@ planner/agent pipeline described in AGENTS.md.
 
 from __future__ import annotations
 
-from contextlib import nullcontext
 from dataclasses import dataclass, field
 import logging
 import os
@@ -21,8 +20,9 @@ from shutil import get_terminal_size
 from typing import Callable, Dict, List, Sequence
 
 from rich.console import Console
-from rich.panel import Panel
+from rich.status import Status
 from rich.table import Table
+from rich.text import Text
 
 from .agents import REGISTRY
 from .ai import (
@@ -47,6 +47,12 @@ logger = logging.getLogger("ember")
 TRUE_STRINGS = {"1", "true", "yes", "on"}
 FALSE_STRINGS = {"0", "false", "no", "off"}
 
+
+class _NoOpStatus:
+    """Fallback status handle when UI verbosity is disabled."""
+
+    def update(self, *_args, **_kwargs) -> None:  # pragma: no cover - trivial
+        pass
 
 def _log_path_within_vault(log_path: Path, vault_dir: Path) -> bool:
     try:
@@ -300,29 +306,35 @@ def main() -> None:
             continue
 
         logger.info("User prompt: %s", line)
-        status_text = f"[cyan]Thinking: {line[:40]}{'…' if len(line) > 40 else ''}"
-        status_context = console.status(status_text, spinner="dots") if ui_verbose else nullcontext()
-        with status_context:
+        status_cm: Status | None = console.status("[cyan]Planning…", spinner="dots") if ui_verbose else None
+        status = status_cm.__enter__() if status_cm else _NoOpStatus()
+        try:
             plan: LlamaPlan = llama_session.plan(line)
 
-        if plan.commands:
-            if ui_verbose:
-                show_plan_summary(console, plan)
-            tool_chunks = []
-            for planned_command in plan.commands:
-                result = execute_cli_command(
-                    planned_command,
-                    router,
-                    llama_session,
-                    history,
-                    source=CommandSource.PLANNER,
-                )
-                tool_chunks.append(f"/{planned_command}\n{result}")
-            tool_context = "\n\n".join(tool_chunks)
-            final_response = llama_session.respond(line, tool_context)
-            show_final_response(console, final_response, plan.commands, verbose=ui_verbose)
-        else:
-            show_final_response(console, plan.response, [], verbose=ui_verbose)
+            if plan.commands:
+                if ui_verbose:
+                    show_plan_summary(console, plan)
+                tool_chunks = []
+                for planned_command in plan.commands:
+                    status.update(f"[cyan]Running /{planned_command}")
+                    result = execute_cli_command(
+                        planned_command,
+                        router,
+                        llama_session,
+                        history,
+                        source=CommandSource.PLANNER,
+                    )
+                    tool_chunks.append(f"/{planned_command}\n{result}")
+                status.update("[cyan]Generating response…")
+                tool_context = "\n\n".join(tool_chunks)
+                final_response = llama_session.respond(line, tool_context)
+                show_final_response(console, final_response, plan.commands, verbose=ui_verbose)
+            else:
+                status.update("[cyan]Generating response…")
+                show_final_response(console, plan.response, [], verbose=ui_verbose)
+        finally:
+            if status_cm:
+                status_cm.__exit__(None, None, None)
 
 
 def bootstrap_agents(config_bundle: ConfigurationBundle) -> None:
@@ -352,14 +364,8 @@ def show_runtime_overview(
         _format_command_block(session.command_names, limit=5),
     )
 
-    console.print(
-        Panel(
-            table,
-            title="Ember Runtime",
-            border_style="cyan",
-            padding=(0, 1),
-        )
-    )
+    console.print("[Runtime] Ember configuration")
+    console.print(table)
 
 
 def show_plan_summary(console: Console, plan: LlamaPlan) -> None:
@@ -375,14 +381,8 @@ def show_plan_summary(console: Console, plan: LlamaPlan) -> None:
         _format_command_block(plan.commands, bullet=True),
     )
 
-    console.print(
-        Panel(
-            body,
-            border_style="yellow",
-            title="Planner",
-            padding=(0, 1),
-        )
-    )
+    console.print("[Planner]")
+    console.print(body)
 
 
 def show_final_response(
@@ -396,23 +396,14 @@ def show_final_response(
 
     preview = response.strip() or "I was unable to generate a response, but I'm still ready to assist."
     if verbose:
-        console.print(
-            Panel(
-                preview,
-                border_style="cyan",
-                title="Ember",
-                padding=(0, 1),
-            )
-        )
+        ember_line = Text("Ember ", style="bold cyan")
+        ember_line.append(preview)
+        console.print(ember_line)
         if commands_run:
-            console.print(
-                Panel(
-                    _format_command_block(commands_run, bullet=True),
-                    border_style="blue",
-                    title="Tools",
-                    padding=(0, 1),
-                )
-            )
+            summary = ", ".join(f"/{cmd}" for cmd in commands_run)
+            tool_line = Text("Tools ", style="bold magenta")
+            tool_line.append(summary)
+            console.print(tool_line)
     else:
         console.print(preview)
         if commands_run:

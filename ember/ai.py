@@ -343,7 +343,7 @@ class LlamaSession:
             raw = self._run_llama(prompt)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("[responder raw]\n%s", raw)
-            return raw
+            return self._coerce_operator_reply(raw)
         except LlamaInvocationError as exc:
             return f"[llama.cpp error] {exc}"
 
@@ -384,6 +384,69 @@ class LlamaSession:
             tool_outputs=tool_outputs or "No tools were run for this answer.",
             user_prompt=user_prompt,
         )
+
+    def _coerce_operator_reply(self, raw_response: str) -> str:
+        """Return a human-friendly string even if llama emitted JSON."""
+
+        text = raw_response.strip()
+        if not text:
+            return text
+
+        candidate = self._strip_code_fence(text)
+        candidate = self._strip_blockquote(candidate)
+        json_payload = self._try_parse_json(candidate)
+        if json_payload is not None:
+            response = json_payload.get("response")
+            if isinstance(response, str) and response.strip():
+                sanitized = response.strip()
+                sanitized = self._strip_code_fence(sanitized)
+                sanitized = self._strip_blockquote(sanitized)
+                return sanitized
+        return text
+
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        """Remove surrounding triple-backtick fences if present."""
+
+        if not text.startswith("```"):
+            return text
+
+        lines = text.splitlines()
+        if not lines:
+            return text
+
+        # Drop opening fence (with optional language tag)
+        if lines[0].lstrip().startswith("```"):
+            lines = lines[1:]
+
+        # Drop closing fence
+        while lines and not lines[-1].strip():
+            lines.pop()
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _strip_blockquote(text: str) -> str:
+        """Remove leading Markdown blockquote markers."""
+
+        lines = text.splitlines()
+        while lines and lines[0].lstrip().startswith(">"):
+            lines = lines[1:]
+        return "\n".join(lines).strip()
+
+    @staticmethod
+    def _try_parse_json(text: str) -> Optional[dict]:
+        """Parse JSON best-effort."""
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(data, dict):
+            return data
+        return None
 
     def _run_llama(self, prompt: str) -> str:
         """Invoke llama.cpp via llama-cpp-python and return its text."""

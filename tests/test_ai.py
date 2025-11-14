@@ -55,7 +55,35 @@ def test_responder_uses_tool_outputs(tmp_path: Path):
     )
     session.prime_with_docs([])
     reply = session.respond("who are you?", "status: ok")
-    assert "done" in reply
+    assert reply == "done"
+
+
+def test_responder_strips_code_fence_json(tmp_path: Path):
+    fenced = """```json
+{
+  "response": "Processed water guidance.",
+  "commands": []
+}
+```"""
+    session = LlamaSession(
+        llama_client=FakeLlama(text=fenced),
+        timeout_sec=5,
+    )
+    session.prime_with_docs([])
+    reply = session.respond("help?", "")
+    assert reply == "Processed water guidance."
+
+
+def test_responder_strips_blockquote_prefix(tmp_path: Path):
+    text = """> 
+
+```json
+{"response": "Stay hydrated.", "commands": []}
+```"""
+    session = LlamaSession(llama_client=FakeLlama(text=text), timeout_sec=5)
+    session.prime_with_docs([])
+    reply = session.respond("ping", "")
+    assert reply == "Stay hydrated."
 
 
 def test_documentation_context_reads_files(tmp_path: Path):
