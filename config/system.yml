@@ -3,6 +3,8 @@ runtime:
   auto_restart: true
 logging:
   level: DEBUG
+ui:
+  verbose: false
 agents:
   disabled: []
 toolchain:

@@ -44,3 +44,20 @@ The rest of the repository follows the conventions in `AGENTS.md`—`/agents`
 contains agent shims, `/config` holds YAML configs, `/plugins` is the extension
 drop zone, and `/tests` covers the current Python stub. See `docs/operations.md`
 for detailed workflows (Docker, provisioning, upgrades, etc.).
+
+## Operator knowledge base
+
+- Store reference material (field guides, almanacs, edible-plant lists, etc.)
+  inside the **vault**: `$VAULT_DIR/library`, `$VAULT_DIR/reference`,
+  `$VAULT_DIR/notes`, `$VAULT_DIR/almanac`, or any subdirectory you prefer.
+  Ember ingests the first ~2 KB per file and feeds those excerpts into llama.cpp
+  so responses stay grounded in what *you* know about the world.
+- This repo ships sample entries under `vault/library/` and `vault/almanac/` to
+  illustrate the format. Customize or replace them—everything under the vault is
+  persistent storage and should become your personal knowledge base.
+- Drop new files or edit existing ones at any time; restart Ember to reload the
+  corpus. Subdirectories are supported, so organize by region/topic however you like.
+- Technical docs (`README.md`, `AGENTS.md`, …) are intentionally excluded for now
+  so the model stays focused on survival knowledge rather than repo internals.
+- Toggle the REPL verbosity via `ui.verbose` (or `EMBER_UI_VERBOSE=0/1`) to
+  switch between the rich development HUD and the terse production view.

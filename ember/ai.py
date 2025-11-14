@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 import re
 from textwrap import dedent
-from typing import Iterable, List, Optional, Sequence
+from typing import Iterable, List, Optional, Sequence, Set
 
 try:  # pragma: no cover - optional dependency in some test environments
     from llama_cpp import Llama
@@ -21,19 +21,30 @@ else:  # pragma: no cover
     LLAMA_IMPORT_ERROR = None
 
 
-def _default_doc_paths() -> tuple[Path, ...]:
-    """Prefer per-command docs; omit legacy README/ROADMAP fallbacks entirely."""
+DOC_EXTENSIONS: tuple[str, ...] = (".md", ".markdown", ".txt")
 
-    commands_dir = Path("docs/commands")
-    if commands_dir.exists():
-        command_docs = sorted(p for p in commands_dir.glob("*.md") if p.is_file())
-        if command_docs:
-            return tuple(command_docs)
+
+def _default_doc_paths() -> tuple[Path, ...]:
+    """Reference packs are directory-driven; no hardcoded technical docs."""
 
     return ()
 
 
 DEFAULT_DOC_PATHS = _default_doc_paths()
+DEFAULT_DOC_DIRS: tuple[Path, ...] = (
+    Path("reference"),
+    Path("library"),
+    Path("docs/reference"),
+    Path("docs/library"),
+)
+DEFAULT_VAULT_DOC_DIRS: tuple[Path, ...] = (
+    Path("library"),
+    Path("reference"),
+    Path("docs"),
+    Path("notes"),
+    Path("knowledge"),
+    Path("almanac"),
+)
 COMMAND_PATTERN = re.compile(r"\[\[COMMAND:(.*?)\]\]")
 logger = logging.getLogger(__name__)
 MODEL_SEARCH_DIRS = [
@@ -141,22 +152,83 @@ class DocumentationContext:
 
     repo_root: Path
     doc_paths: Sequence[Path] = DEFAULT_DOC_PATHS
+    vault_dir: Optional[Path] = None
+    doc_dirs: Sequence[Path] = DEFAULT_DOC_DIRS
+    vault_doc_dirs: Sequence[Path] = DEFAULT_VAULT_DOC_DIRS
     max_bytes_per_file: int = 2048
+    max_files_per_dir: int = 10
+    include_extensions: Sequence[str] = DOC_EXTENSIONS
 
     def load(self) -> List[DocumentationSnippet]:
         """Read configured doc files (best-effort) and return excerpts."""
 
         snippets: List[DocumentationSnippet] = []
-        for rel_path in self.doc_paths:
-            path = (self.repo_root / rel_path).resolve()
-            try:
-                data = path.read_text(encoding="utf-8")
-            except OSError:
-                continue
+        seen: Set[str] = set()
+        extensions = {ext.lower() for ext in self.include_extensions}
 
-            excerpt = data[: self.max_bytes_per_file]
-            snippets.append(DocumentationSnippet(source=path.name, excerpt=excerpt))
+        for rel_path in self.doc_paths:
+            path = self._resolve_repo_path(rel_path)
+            self._append_file(path, snippets, seen)
+
+        for directory in self.doc_dirs:
+            resolved = self._resolve_repo_path(directory)
+            self._collect_directory(resolved, snippets, seen, extensions)
+
+        if self.vault_dir:
+            for directory in self.vault_doc_dirs:
+                resolved = self._resolve_vault_path(directory)
+                self._collect_directory(resolved, snippets, seen, extensions)
+
         return snippets
+
+    def _append_file(
+        self,
+        path: Path,
+        snippets: List[DocumentationSnippet],
+        seen: Set[str],
+    ) -> None:
+        key = str(path)
+        if key in seen:
+            return
+        try:
+            data = path.read_text(encoding="utf-8")
+        except OSError:
+            return
+
+        seen.add(key)
+        excerpt = data[: self.max_bytes_per_file]
+        snippets.append(DocumentationSnippet(source=path.name, excerpt=excerpt))
+
+    def _collect_directory(
+        self,
+        directory: Optional[Path],
+        snippets: List[DocumentationSnippet],
+        seen: Set[str],
+        extensions: Set[str],
+    ) -> None:
+        if directory is None or not directory.exists() or not directory.is_dir():
+            return
+
+        files = sorted(
+            p
+            for p in directory.rglob("*")
+            if p.is_file() and p.suffix.lower() in extensions
+        )
+        for path in files[: self.max_files_per_dir]:
+            self._append_file(path, snippets, seen)
+
+    def _resolve_repo_path(self, relative: Path) -> Path:
+        if relative.is_absolute():
+            return relative
+        return (self.repo_root / relative).resolve()
+
+    def _resolve_vault_path(self, relative: Path) -> Optional[Path]:
+        base = self.vault_dir
+        if base is None:
+            return None
+        if relative.is_absolute():
+            return relative
+        return (base / relative).resolve()
 
 
 @dataclass

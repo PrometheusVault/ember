@@ -8,6 +8,7 @@ planner/agent pipeline described in AGENTS.md.
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 import logging
 import os
@@ -43,6 +44,8 @@ VAULT_DIR = Path(os.environ.get("VAULT_DIR", "/vault")).expanduser()
 EMBER_MODE = os.environ.get("EMBER_MODE", "DEV (Docker)")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 logger = logging.getLogger("ember")
+TRUE_STRINGS = {"1", "true", "yes", "on"}
+FALSE_STRINGS = {"0", "false", "no", "off"}
 
 
 def _log_path_within_vault(log_path: Path, vault_dir: Path) -> bool:
@@ -83,6 +86,30 @@ def print_banner() -> None:
 
     print(banner)
     print()
+
+
+def _parse_env_flag(value: str, *, default: bool = True) -> bool:
+    normalized = value.strip().lower()
+    if normalized in TRUE_STRINGS:
+        return True
+    if normalized in FALSE_STRINGS:
+        return False
+    return default
+
+
+def _resolve_ui_verbose(config_bundle: ConfigurationBundle) -> bool:
+    """Resolve whether the CLI should display the full HUD or a quiet view."""
+
+    env_value = os.environ.get("EMBER_UI_VERBOSE")
+    if env_value is not None:
+        return _parse_env_flag(env_value)
+
+    merged = config_bundle.merged or {}
+    ui_cfg = merged.get("ui") or {}
+    verbose_setting = ui_cfg.get("verbose")
+    if verbose_setting is None:
+        return True
+    return bool(verbose_setting)
 
 
 def _format_command_block(
@@ -184,10 +211,11 @@ def execute_cli_command(
 def bootstrap_llama_session(
     history: List[CommandExecutionLog],
     router: CommandRouter,
+    vault_dir: Path | None = None,
 ) -> tuple[LlamaSession, int]:
     """Load documentation context and return a prepped llama session plus doc count."""
 
-    doc_context = DocumentationContext(repo_root=REPO_ROOT)
+    doc_context = DocumentationContext(repo_root=REPO_ROOT, vault_dir=vault_dir)
     snippets = doc_context.load()
     llama_session = LlamaSession(
         command_history=history,
@@ -201,8 +229,14 @@ def main() -> None:
     """Entry point for `python -m ember`."""
 
     console = Console()
-    print_banner()
     config_bundle = load_runtime_configuration(VAULT_DIR)
+    ui_verbose = _resolve_ui_verbose(config_bundle)
+    if ui_verbose:
+        print_banner()
+    else:
+        print(f"[Ember] {EMBER_MODE} ready (quiet mode)")
+        print()
+
     configured_level = (
         (config_bundle.merged.get("logging", {}) or {}).get("level")
         if config_bundle.merged
@@ -225,10 +259,11 @@ def main() -> None:
         )
     bootstrap_agents(config_bundle)
     logger.info("Logging initialized at %s", log_path)
+    logger.info("UI verbosity: %s", "enabled" if ui_verbose else "disabled")
     router = build_router(config_bundle)
     configure_autocomplete(router)
     history: List[CommandExecutionLog] = []
-    llama_session, _ = bootstrap_llama_session(history, router)
+    llama_session, _ = bootstrap_llama_session(history, router, config_bundle.vault_dir)
     router.metadata["llama_session"] = llama_session
 
     while True:
@@ -240,7 +275,11 @@ def main() -> None:
 
         if raw_line == "\x0c":  # Ctrl-L (form feed)
             print("\033[2J\033[H", end="")
-            print_banner()
+            if ui_verbose:
+                print_banner()
+            else:
+                print(f"[Ember] {EMBER_MODE} ready (quiet mode)")
+                print()
             continue
 
         line = raw_line.strip()
@@ -262,11 +301,13 @@ def main() -> None:
 
         logger.info("User prompt: %s", line)
         status_text = f"[cyan]Thinking: {line[:40]}{'…' if len(line) > 40 else ''}"
-        with console.status(status_text, spinner="dots"):
+        status_context = console.status(status_text, spinner="dots") if ui_verbose else nullcontext()
+        with status_context:
             plan: LlamaPlan = llama_session.plan(line)
 
         if plan.commands:
-            show_plan_summary(console, plan)
+            if ui_verbose:
+                show_plan_summary(console, plan)
             tool_chunks = []
             for planned_command in plan.commands:
                 result = execute_cli_command(
@@ -279,9 +320,9 @@ def main() -> None:
                 tool_chunks.append(f"/{planned_command}\n{result}")
             tool_context = "\n\n".join(tool_chunks)
             final_response = llama_session.respond(line, tool_context)
-            show_final_response(console, final_response, plan.commands)
+            show_final_response(console, final_response, plan.commands, verbose=ui_verbose)
         else:
-            show_final_response(console, plan.response, [])
+            show_final_response(console, plan.response, [], verbose=ui_verbose)
 
 
 def bootstrap_agents(config_bundle: ConfigurationBundle) -> None:
@@ -348,24 +389,32 @@ def show_final_response(
     console: Console,
     response: str,
     commands_run: List[str],
+    *,
+    verbose: bool = True,
 ) -> None:
     """Render the final conversational answer."""
 
-    preview = response.strip() or "(no response)"
-    console.print(
-        Panel(
-            preview,
-            border_style="cyan",
-            title="Ember",
-            padding=(0, 1),
-        )
-    )
-    if commands_run:
+    preview = response.strip() or "I was unable to generate a response, but I'm still ready to assist."
+    if verbose:
         console.print(
             Panel(
-                _format_command_block(commands_run, bullet=True),
-                border_style="blue",
-                title="Tools",
+                preview,
+                border_style="cyan",
+                title="Ember",
                 padding=(0, 1),
             )
         )
+        if commands_run:
+            console.print(
+                Panel(
+                    _format_command_block(commands_run, bullet=True),
+                    border_style="blue",
+                    title="Tools",
+                    padding=(0, 1),
+                )
+            )
+    else:
+        console.print(preview)
+        if commands_run:
+            summary = ", ".join(f"/{cmd}" for cmd in commands_run)
+            console.print(f"[tools] {summary}")

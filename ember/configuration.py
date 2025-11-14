@@ -50,6 +50,13 @@ CONFIG_SCHEMA: SchemaSpec = {
         },
         "default": {},
     },
+    "ui": {
+        "type": dict,
+        "schema": {
+            "verbose": {"type": bool, "default": True},
+        },
+        "default": {},
+    },
     "agents": {
         "type": dict,
         "schema": {

@@ -79,3 +79,45 @@ def test_documentation_context_reads_files(tmp_path: Path):
         "ROADMAP.md",
     }
     assert all(len(snippet.excerpt) <= 4 for snippet in snippets)
+
+
+def test_documentation_context_scans_directories(tmp_path: Path):
+    repo = tmp_path
+    docs_dir = repo / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "field.md").write_text("field procedures", encoding="utf-8")
+    (docs_dir / "checklist.txt").write_text("checklist", encoding="utf-8")
+    vault = tmp_path / "vault"
+    (vault / "docs").mkdir(parents=True)
+    (vault / "docs" / "vault.md").write_text("vault notes", encoding="utf-8")
+
+    ctx = DocumentationContext(
+        repo_root=repo,
+        vault_dir=vault,
+        doc_paths=(),
+        doc_dirs=(Path("docs"),),
+        vault_doc_dirs=(Path("docs"),),
+        max_bytes_per_file=32,
+        max_files_per_dir=5,
+    )
+    snippets = ctx.load()
+
+    assert {snippet.source for snippet in snippets} == {"field.md", "checklist.txt", "vault.md"}
+
+
+def test_documentation_context_honors_max_files(tmp_path: Path):
+    repo = tmp_path
+    docs_dir = repo / "docs"
+    docs_dir.mkdir()
+    for idx in range(3):
+        (docs_dir / f"file{idx}.md").write_text(f"doc {idx}", encoding="utf-8")
+
+    ctx = DocumentationContext(
+        repo_root=repo,
+        doc_paths=(),
+        doc_dirs=(Path("docs"),),
+        max_files_per_dir=2,
+    )
+    snippets = ctx.load()
+
+    assert len(snippets) == 2

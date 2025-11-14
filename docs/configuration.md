@@ -238,7 +238,43 @@ top-level key so overrides remain declarative and straightforward to audit.
 
 ---
 
-## 10. Environment variables cheat sheet
+## 10. Operator UI settings
+
+`ui.verbose` governs how chatty the REPL is. Leaving it `true` shows the banner,
+planner panels, and tool summaries suited for development. Setting it to `false`
+simulates the headless production HUD: no ASCII art banner, no planner panel,
+and final responses are rendered as plain text with a terse `[tools]` summary.
+
+```yaml
+ui:
+  verbose: false
+```
+
+The `EMBER_UI_VERBOSE` environment variable overrides the YAML (accepts
+`1/true/on` or `0/false/off`). Use it when you need a quick quiet session
+without editing config files.
+
+---
+
+## 11. Knowledge base ingestion
+
+Ember keeps llama.cpp grounded with whatever survival manuals you stash on disk.
+Treat the **vault** (`$VAULT_DIR`) as the authoritative library: folders named
+`library/`, `reference/`, `docs/`, `notes/`, `knowledge/`, or `almanac/`
+automatically feed into the prompt cache. Files ending in `.md`, `.markdown`, or
+`.txt` are eligible, and Ember reads the first ~2 KB from up to 10 files per
+directory. Drop your own almanacs, checklists, and regional guides inside those
+folders (or create symlinks) and relaunch Ember to refresh the prompt cache.
+
+For convenience the repo still scans optional directories (`reference/`,
+`library/`, `docs/reference/`, `docs/library/`) when they exist, but the vault
+is the only location that survives upgrades. Developer/operator docs such as
+`README.md` and `AGENTS.md` are intentionally excluded for now so responses stay
+focused on world knowledge rather than repo internals.
+
+---
+
+## 12. Environment variables cheat sheet
 
 These are read during bootstrap or by helper scripts; set them in your shell,
 systemd unit, or tmux profile as needed:
@@ -248,6 +284,7 @@ systemd unit, or tmux profile as needed:
 | `VAULT_DIR` | Points Ember at the active vault. | Defaults to `/vault` (`ember/app.py:46`). |
 | `EMBER_MODE` | Freeform label printed in the banner. | `DEV (Docker)` when unset. |
 | `EMBER_LOG_LEVEL` | Overrides `logging.level` at runtime. | Upper-cased value; `WARNING` default. |
+| `EMBER_UI_VERBOSE` | Forces HUD verbosity (`1/true/on` vs `0/false/off`). | Overrides `ui.verbose`; defaults to verbose. |
 | `LLAMA_CPP_MODEL` (+ `LLAMA_CPP_MAX_TOKENS`, `LLAMA_CPP_THREADS`, `LLAMA_CPP_TEMPERATURE`, `LLAMA_CPP_TOP_P`, `LLAMA_CPP_TIMEOUT`) | Tuning knobs for the local llama.cpp binding (`README.md`). | Set per session or inject via `make dev ENV_VARS="..."`. |
 | `EMBER_SKIP_PROVISION` | Skips the provisioning agent once. | Useful for read-only media. |
 | `EMBER_SKIP_AUTO_TMUX` / `EMBER_SKIP_AUTO_REPL` | Bypass the auto-launch HUD or REPL when opening tmux panes (`docs/operations.md:118-123`). | Leave unset for normal behavior. |
@@ -259,7 +296,7 @@ systemd/rc files under `/etc` if you need persistent overrides on bare metal.
 
 ---
 
-## 11. Troubleshooting & verification
+## 13. Troubleshooting & verification
 
 1. Run `/status` in the REPL to inspect diagnostics, log paths, and agent
    results.
