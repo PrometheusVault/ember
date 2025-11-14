@@ -11,9 +11,10 @@ working on a fully offline Raspberry Pi.
      (`config/*.yml`) plus `$VAULT_DIR/config`, validates the merged result
      against the built-in schema, and primes logging.
    - Enabled agents are registered via `ember/agents/registry.py`. On the
-     `bootstrap` trigger the registry executes each agent in order (currently
-     just `provision.agent`), storing results in `config_bundle.agent_state` so
-     `/status` can surface them.
+     `bootstrap` trigger the registry executes each agent in order: `core.agent`
+     records the configuration/allow-list policy, then `network.agent`,
+     `provision.agent`, and the rest of the stack run, storing their results in
+     `config_bundle.agent_state` so `/status` can surface them.
 2. **REPL loop**
    - The banner is the only startup output; once you see the prompt (`>`), Ember
      is ready for input. `/help` lists commands; `/man <cmd>` opens the stored

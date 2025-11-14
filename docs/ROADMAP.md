@@ -6,7 +6,10 @@ _(Complete – planning for next sprint in progress)_
 
 ## Backlog (highest priority first)
 
-1. **Core agent alignment** – Implement (or retire) `core.agent`, update defaults/docs, and ensure the registry actually runs every required agent at bootstrap.
+1. **Core agent lifecycle (next steps)** – Build on the new shim by:
+   - gating downstream agents when configuration is `missing`/`invalid`, with retry hooks;
+   - emitting per-agent telemetry so `/status` and the planner see orchestrated ordering/latency;
+   - integrating runtime enable/disable requests so `core.agent` becomes the single source of truth for scheduling.
 2. **Update workflow hardening** – Merge `update.agent` readiness into `/update`, block dirty/unapproved branches, and make provisioning reruns safe (rollback hooks, no blind `sudo`).
 3. **Offline provisioning bundles** – Package llama.cpp sources, models, and dependencies so `scripts/provision.sh` works on air-gapped devices (USB/tarball ingestion flow + docs).
 4. **Runtime agent toggles** – Add `/agent enable|disable` (and planner awareness) so operators can change behavior without restarting Ember.

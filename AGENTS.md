@@ -73,10 +73,10 @@ Each agent is defined by:
 ### 🔥 1. `core.agent`
 
 **Role:** System Orchestrator
-**Responsibility:** Boot, monitor, and restart the Ember runtime environment.
+**Responsibility:** Capture the vault/configuration status, normalize agent allow/deny lists, and hand control to the rest of the registry during bootstrap.
 **Triggers:** System startup, watchdog signals, or manual invocation.
 **Inputs:** `config/system.yml`, system state
-**Outputs:** Runtime logs, status signals
+**Outputs:** Runtime logs, status signals, agent policy summary (visible in `/agents` and `/status`)
 **Dependencies:** `network.agent`, `provision.agent`
 
 ---

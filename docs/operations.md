@@ -31,9 +31,11 @@ of crashing so you can correct the configuration and retry.
 [See `docs/agents/provision.md`](agents/provision.md) for the full developer and
 operator guide. Field notes below summarize the day-to-day workflow.
 
-- During startup the `core.agent` automatically invokes `provision.agent`. The
-  agent ensures the vault directory contains the expected layout (logs/,
-  logs/agents/, plugins/, models/, state/, etc.) and writes a summary to
+- During startup the `core.agent` captures the current vault/configuration
+  status, records which agents are explicitly enabled/disabled, and then hands
+  control off to the rest of the registry. The next agent in the chain,
+  `provision.agent`, ensures the vault directory contains the expected layout
+  (logs/, logs/agents/, plugins/, models/, state/, etc.) and writes a summary to
   `$VAULT_DIR/state/provision.json`.
 - Set `EMBER_SKIP_PROVISION=1` before launching Ember to bypass the provisioning
   pass (handy for read-only demos or CI sandboxes). Any diagnostic failures are

@@ -1,5 +1,6 @@
 """Agent implementations for the Ember runtime."""
 
+from .core import run_core_agent
 from .network import run_network_agent
 from .plugin_loader import run_plugin_agent
 from .provision import run_provision_agent
@@ -9,6 +10,15 @@ from .toolchain import run_toolchain_agent
 from .update_agent import run_update_agent
 
 REGISTRY = AgentRegistry()
+REGISTRY.register(
+    AgentDefinition(
+        name="core.agent",
+        description="Coordinate bootstrap sequencing and record agent policy.",
+        handler=run_core_agent,
+        triggers=("bootstrap",),
+        requires_ready=False,
+    )
+)
 REGISTRY.register(
     AgentDefinition(
         name="network.agent",

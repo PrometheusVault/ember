@@ -64,6 +64,8 @@ Tips:
 - Set `logging.level: DEBUG` (or export `EMBER_LOG_LEVEL=DEBUG`) to trace
   planner/responder prompts and llama.cpp interactions directly in the REPL.
 - Leave it at `INFO` for normal usage so only high-level events are surfaced.
+- Keep `agents.enabled` empty unless you truly need an allow-list—`core.agent`
+  records the default policy and lets every default-enabled agent run otherwise.
 
 Edit with `vim config/system.yml`, keeping YAML indentation (two spaces).
 
