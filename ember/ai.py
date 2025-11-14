@@ -257,12 +257,14 @@ class LlamaSession:
 
     model_path: Path = field(default_factory=_default_model_path)
     timeout_sec: float = float(os.environ.get("LLAMA_CPP_TIMEOUT", "120"))
-    max_tokens: int = int(os.environ.get("LLAMA_CPP_MAX_TOKENS", "128"))
+    max_tokens: int = int(os.environ.get("LLAMA_CPP_MAX_TOKENS", "512"))
     temperature: float = float(os.environ.get("LLAMA_CPP_TEMPERATURE", "0.2"))
     top_p: float = float(os.environ.get("LLAMA_CPP_TOP_P", "0.95"))
     n_ctx: int = _env_int("LLAMA_CPP_CTX", 2048)
     n_threads: int = _env_int("LLAMA_CPP_THREADS", os.cpu_count() or 2)
     n_batch: int = _env_int("LLAMA_CPP_BATCH", 128)
+    planner_max_tokens: int = field(default_factory=lambda: _env_int("LLAMA_CPP_PLANNER_TOKENS", 0))
+    responder_max_tokens: int = field(default_factory=lambda: _env_int("LLAMA_CPP_RESPONDER_TOKENS", 0))
     rope_freq_base: Optional[float] = field(default_factory=lambda: _env_optional_float("LLAMA_CPP_ROPE_FREQ_BASE"))
     rope_freq_scale: Optional[float] = field(default_factory=lambda: _env_optional_float("LLAMA_CPP_ROPE_FREQ_SCALE"))
     prompt_template_path: Path = field(
@@ -282,6 +284,13 @@ class LlamaSession:
     )
     _planner_template: Optional[str] = field(default=None, init=False, repr=False)
     _responder_template: Optional[str] = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if self.planner_max_tokens <= 0:
+            self.planner_max_tokens = self.max_tokens
+        if self.responder_max_tokens <= 0:
+            self.responder_max_tokens = max(self.max_tokens * 2, self.planner_max_tokens)
+        self.responder_max_tokens = max(self.responder_max_tokens, self.planner_max_tokens)
 
     def prime_with_docs(self, snippets: Iterable[DocumentationSnippet]) -> None:
         """Store documentation slices so we can reference them in responses."""
@@ -321,7 +330,7 @@ class LlamaSession:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("[planner prompt]\n%s", prompt)
         try:
-            raw_output = self._run_llama(prompt)
+            raw_output = self._run_llama(prompt, max_tokens=self.planner_max_tokens)
         except LlamaInvocationError as exc:
             return LlamaPlan(response=f"[llama.cpp error] {exc}", commands=[])
 
@@ -340,7 +349,7 @@ class LlamaSession:
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("[responder prompt]\n%s", prompt)
         try:
-            raw = self._run_llama(prompt)
+            raw = self._run_llama(prompt, max_tokens=self.responder_max_tokens)
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("[responder raw]\n%s", raw)
             return self._coerce_operator_reply(raw)
@@ -392,17 +401,24 @@ class LlamaSession:
         if not text:
             return text
 
-        candidate = self._strip_code_fence(text)
-        candidate = self._strip_blockquote(candidate)
+        candidate = self._strip_prompt_tags(
+            self._strip_control_tokens(self._strip_blockquote(self._strip_code_fence(text)))
+        )
         json_payload = self._try_parse_json(candidate)
         if json_payload is not None:
             response = json_payload.get("response")
             if isinstance(response, str) and response.strip():
                 sanitized = response.strip()
-                sanitized = self._strip_code_fence(sanitized)
-                sanitized = self._strip_blockquote(sanitized)
+                sanitized = self._strip_prompt_tags(
+                    self._strip_control_tokens(self._strip_blockquote(self._strip_code_fence(sanitized)))
+                )
                 return sanitized
-        return text
+            # Flatten known keys when "response" is missing
+            commands = json_payload.get("commands")
+            if isinstance(commands, list) and json_payload.get("response") is None:
+                body = candidate.replace('"commands": []', "").strip()
+                return body
+        return self._dedupe_lines(text)
 
     @staticmethod
     def _strip_code_fence(text: str) -> str:
@@ -437,6 +453,35 @@ class LlamaSession:
         return "\n".join(lines).strip()
 
     @staticmethod
+    def _strip_prompt_tags(text: str) -> str:
+        """Remove leftover prompt scaffolding like <documentation> blocks."""
+
+        clean = text.replace("<documentation>", "")
+        clean = clean.replace("</documentation>", "")
+        clean = clean.replace("<tool_outputs>", "")
+        clean = clean.replace("</tool_outputs>", "")
+        clean = clean.replace("<user_prompt>", "")
+        clean = clean.replace("</user_prompt>", "")
+        return clean.strip()
+
+    @staticmethod
+    def _dedupe_lines(text: str) -> str:
+        """Collapse repeated lines while preserving order."""
+
+        seen: set[str] = set()
+        result: List[str] = []
+        for line in text.splitlines():
+            normalized = line.strip()
+            if not normalized:
+                result.append(line)
+                continue
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            result.append(line)
+        return "\n".join(result)
+
+    @staticmethod
     def _try_parse_json(text: str) -> Optional[dict]:
         """Parse JSON best-effort."""
 
@@ -448,7 +493,7 @@ class LlamaSession:
             return data
         return None
 
-    def _run_llama(self, prompt: str) -> str:
+    def _run_llama(self, prompt: str, *, max_tokens: Optional[int] = None) -> str:
         """Invoke llama.cpp via llama-cpp-python and return its text."""
 
         client = self._ensure_client()
@@ -456,7 +501,7 @@ class LlamaSession:
         def _invoke():
             return client.create_completion(
                 prompt=prompt,
-                max_tokens=self.max_tokens,
+                max_tokens=max_tokens or self.max_tokens,
                 temperature=self.temperature,
                 top_p=self.top_p,
                 stream=False,
@@ -641,3 +686,17 @@ def _discover_models() -> List[Path]:
                     seen.add(key)
                     models.append(candidate)
     return models
+    @staticmethod
+    def _strip_control_tokens(text: str) -> str:
+        """Remove known control tokens such as <emitted_commands> blocks."""
+
+        replacements = [
+            ("<emitted_commands>", ""),
+            ("</emitted_commands>", ""),
+            ("<emblem>", ""),
+            ("</emblem>", ""),
+        ]
+        clean = text
+        for needle, repl in replacements:
+            clean = clean.replace(needle, repl)
+        return clean.strip()

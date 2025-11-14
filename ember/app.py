@@ -20,8 +20,10 @@ from shutil import get_terminal_size
 from typing import Callable, Dict, List, Sequence
 
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.status import Status
 from rich.table import Table
+from rich.text import Text
 from rich.text import Text
 
 from .agents import REGISTRY
@@ -195,6 +197,7 @@ def execute_cli_command(
     history: List[CommandExecutionLog],
     *,
     source: CommandSource = CommandSource.USER,
+    suppress_output: bool = False,
 ) -> str:
     """Helper that executes an Ember CLI command and records the output."""
 
@@ -205,7 +208,8 @@ def execute_cli_command(
     parts = stripped.split()
     command, args = parts[0], parts[1:]
     result = router.handle(command, args, source=source)
-    print(result)
+    if not suppress_output:
+        print(result)
 
     log_entry = CommandExecutionLog(command=stripped, output=result)
     history.append(log_entry)
@@ -306,6 +310,9 @@ def main() -> None:
             continue
 
         logger.info("User prompt: %s", line)
+        if ui_verbose:
+            console.print()
+            console.print(Text("[Thinking] Planning next steps…", style="cyan"))
         status_cm: Status | None = console.status("[cyan]Planning…", spinner="dots") if ui_verbose else None
         status = status_cm.__enter__() if status_cm else _NoOpStatus()
         try:
@@ -316,6 +323,8 @@ def main() -> None:
                     show_plan_summary(console, plan)
                 tool_chunks = []
                 for planned_command in plan.commands:
+                    if ui_verbose:
+                        console.print(Text(f"[Action] Running /{planned_command}", style="magenta"))
                     status.update(f"[cyan]Running /{planned_command}")
                     result = execute_cli_command(
                         planned_command,
@@ -323,14 +332,19 @@ def main() -> None:
                         llama_session,
                         history,
                         source=CommandSource.PLANNER,
+                        suppress_output=True,
                     )
                     tool_chunks.append(f"/{planned_command}\n{result}")
                 status.update("[cyan]Generating response…")
                 tool_context = "\n\n".join(tool_chunks)
+                if ui_verbose:
+                    console.print(Text("[Thinking] Drafting final response…", style="cyan"))
                 final_response = llama_session.respond(line, tool_context)
                 show_final_response(console, final_response, plan.commands, verbose=ui_verbose)
             else:
                 status.update("[cyan]Generating response…")
+                if ui_verbose:
+                    console.print(Text("[Thinking] Drafting final response…", style="cyan"))
                 show_final_response(console, plan.response, [], verbose=ui_verbose)
         finally:
             if status_cm:
@@ -396,16 +410,20 @@ def show_final_response(
 
     preview = response.strip() or "I was unable to generate a response, but I'm still ready to assist."
     if verbose:
-        ember_line = Text("Ember ", style="bold cyan")
-        ember_line.append(preview)
-        console.print(ember_line)
+        console.print()
+        console.print(Text("[Ember]", style="bold cyan"))
+        for line in preview.splitlines():
+            console.print(line)
         if commands_run:
-            summary = ", ".join(f"/{cmd}" for cmd in commands_run)
-            tool_line = Text("Tools ", style="bold magenta")
-            tool_line.append(summary)
-            console.print(tool_line)
+            console.print("\n[Tools]")
+            for cmd in commands_run:
+                console.print(f"- /{cmd}")
+        console.print()
     else:
+        console.print()
         console.print(preview)
         if commands_run:
+            console.print()
             summary = ", ".join(f"/{cmd}" for cmd in commands_run)
             console.print(f"[tools] {summary}")
+        console.print()

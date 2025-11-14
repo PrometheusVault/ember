@@ -285,7 +285,9 @@ systemd unit, or tmux profile as needed:
 | `EMBER_MODE` | Freeform label printed in the banner. | `DEV (Docker)` when unset. |
 | `EMBER_LOG_LEVEL` | Overrides `logging.level` at runtime. | Upper-cased value; `WARNING` default. |
 | `EMBER_UI_VERBOSE` | Forces HUD verbosity (`1/true/on` vs `0/false/off`). | Overrides `ui.verbose`; defaults to verbose. |
-| `LLAMA_CPP_MODEL` (+ `LLAMA_CPP_MAX_TOKENS`, `LLAMA_CPP_THREADS`, `LLAMA_CPP_TEMPERATURE`, `LLAMA_CPP_TOP_P`, `LLAMA_CPP_TIMEOUT`) | Tuning knobs for the local llama.cpp binding (`README.md`). | Set per session or inject via `make dev ENV_VARS="..."`. |
+| `LLAMA_CPP_MODEL` (+ `LLAMA_CPP_MAX_TOKENS`, `LLAMA_CPP_THREADS`, `LLAMA_CPP_TEMPERATURE`, `LLAMA_CPP_TOP_P`, `LLAMA_CPP_TIMEOUT`) | Tuning knobs for the local llama.cpp binding (`README.md`). | Set per session or inject via `make dev ENV_VARS="..."`. Default max tokens is 512. |
+| `LLAMA_CPP_PLANNER_TOKENS` | Overrides the token budget for planning responses. | Defaults to `LLAMA_CPP_MAX_TOKENS`. |
+| `LLAMA_CPP_RESPONDER_TOKENS` | Overrides the token budget for final operator replies. | Defaults to `max(LLAMA_CPP_MAX_TOKENS*2, planner_tokens)`. |
 | `EMBER_SKIP_PROVISION` | Skips the provisioning agent once. | Useful for read-only media. |
 | `EMBER_SKIP_AUTO_TMUX` / `EMBER_SKIP_AUTO_REPL` | Bypass the auto-launch HUD or REPL when opening tmux panes (`docs/operations.md:118-123`). | Leave unset for normal behavior. |
 | `EMBER_MODEL_URL`, `EMBER_MODEL_DIR`, `LLAMA_DIR`, `EMBER_VAULT_DIR`, `EMBER_USER` | Consumption knobs for `scripts/provision.sh` during first-boot installs. |
