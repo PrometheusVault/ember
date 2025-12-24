@@ -205,6 +205,45 @@ CONFIG_SCHEMA: SchemaSpec = {
         },
         "default": {},
     },
+    "sync": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": False},
+            "node_id": {"type": str, "default": ""},
+            "mode": {"type": str, "default": "manual"},
+            "server_url": {"type": str, "default": ""},
+            "conflict_strategy": {"type": str, "default": "newest_wins"},
+            "sync_dirs": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: ["config", "library", "notes", "reference"],
+            },
+            "exclude_patterns": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: ["*.log", "*.tmp", "models/*", "state/*"],
+            },
+            "manifest_path": {"type": str, "default": "state/sync_manifest.json"},
+        },
+        "default": {},
+    },
+    "mesh": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": False},
+            "node_id": {"type": str, "default": ""},
+            "port": {"type": int, "default": 8378},
+            "advertise": {"type": bool, "default": True},
+            "capabilities": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: ["llm"],
+            },
+            "tls": {"type": bool, "default": False},
+            "discovery_interval": {"type": int, "default": 30},
+        },
+        "default": {},
+    },
 }
 
 

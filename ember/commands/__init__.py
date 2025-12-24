@@ -9,9 +9,11 @@ from .export import COMMAND as EXPORT_COMMAND
 from .help import COMMAND as HELP_COMMAND
 from .history import COMMAND as HISTORY_COMMAND
 from .man import COMMAND as MAN_COMMAND
+from .mesh import COMMAND as MESH_COMMAND
 from .model import COMMAND as MODEL_COMMAND
 from .rag import COMMAND as RAG_COMMAND
 from .status import COMMAND as STATUS_COMMAND
+from .sync import COMMAND as SYNC_COMMAND
 from .update import COMMAND as UPDATE_COMMAND
 
 COMMANDS = [
@@ -23,8 +25,10 @@ COMMANDS = [
     EXPORT_COMMAND,
     HISTORY_COMMAND,
     MAN_COMMAND,
+    MESH_COMMAND,
     MODEL_COMMAND,
     RAG_COMMAND,
+    SYNC_COMMAND,
     UPDATE_COMMAND,
 ]
 

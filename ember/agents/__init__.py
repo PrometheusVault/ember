@@ -7,6 +7,8 @@ from .plugin_loader import run_plugin_agent
 from .provision import run_provision_agent
 from .rag import run_rag_agent
 from .registry import AgentDefinition, AgentRegistry
+from .sync import run_sync_agent
+from .mesh import run_mesh_agent
 from .test_runner import run_test_agent
 from .toolchain import run_toolchain_agent
 from .update_agent import run_update_agent
@@ -87,6 +89,24 @@ REGISTRY.register(
         name="rag.agent",
         description="Index vault documents into the RAG vector store.",
         handler=run_rag_agent,
+        triggers=("bootstrap",),
+        default_enabled=False,
+    )
+)
+REGISTRY.register(
+    AgentDefinition(
+        name="sync.agent",
+        description="Initialize vault sync and report synchronization status.",
+        handler=run_sync_agent,
+        triggers=("bootstrap",),
+        default_enabled=False,
+    )
+)
+REGISTRY.register(
+    AgentDefinition(
+        name="mesh.agent",
+        description="Initialize mesh networking and discover nodes.",
+        handler=run_mesh_agent,
         triggers=("bootstrap",),
         default_enabled=False,
     )
