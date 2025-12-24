@@ -120,6 +120,21 @@ def _resolve_ui_verbose(config_bundle: ConfigurationBundle) -> bool:
     return bool(verbose_setting)
 
 
+def _resolve_ui_streaming(config_bundle: ConfigurationBundle) -> bool:
+    """Resolve whether streaming LLM responses are enabled."""
+
+    env_value = os.environ.get("EMBER_UI_STREAMING")
+    if env_value is not None:
+        return _parse_env_flag(env_value)
+
+    merged = config_bundle.merged or {}
+    ui_cfg = merged.get("ui") or {}
+    streaming_setting = ui_cfg.get("streaming")
+    if streaming_setting is None:
+        return True
+    return bool(streaming_setting)
+
+
 def _format_command_block(
     commands: Sequence[str],
     *,
@@ -241,20 +256,25 @@ def main() -> None:
     console = Console()
     config_bundle = load_runtime_configuration(VAULT_DIR)
     ui_verbose = _resolve_ui_verbose(config_bundle)
+    ui_streaming = _resolve_ui_streaming(config_bundle)
     if ui_verbose:
         print_banner()
     else:
         print(f"[Ember] {EMBER_MODE} ready (quiet mode)")
         print()
 
-    configured_level = (
-        (config_bundle.merged.get("logging", {}) or {}).get("level")
-        if config_bundle.merged
-        else None
-    )
+    log_config = (config_bundle.merged.get("logging", {}) or {}) if config_bundle.merged else {}
+    configured_level = log_config.get("level")
     env_level = os.environ.get("EMBER_LOG_LEVEL")
     log_level_name = (env_level or configured_level or "WARNING").upper()
-    log_path = setup_logging(config_bundle.vault_dir, log_level_name)
+    structured = log_config.get("structured", True)
+    structured_path = log_config.get("structured_path")
+    log_path = setup_logging(
+        config_bundle.vault_dir,
+        log_level_name,
+        structured=structured,
+        structured_path=structured_path,
+    )
     config_bundle.log_path = log_path
     if not _log_path_within_vault(log_path, config_bundle.vault_dir):
         config_bundle.diagnostics.append(
@@ -275,6 +295,7 @@ def main() -> None:
     history: List[CommandExecutionLog] = []
     llama_session, _ = bootstrap_llama_session(history, router, config_bundle.vault_dir)
     router.metadata["llama_session"] = llama_session
+    router.metadata["history"] = history
 
     while True:
         try:
@@ -335,12 +356,24 @@ def main() -> None:
                         suppress_output=True,
                     )
                     tool_chunks.append(f"/{planned_command}\n{result}")
-                status.update("[cyan]Generating response…")
                 tool_context = "\n\n".join(tool_chunks)
-                if ui_verbose:
-                    console.print(Text("[Thinking] Drafting final response…", style="cyan"))
-                final_response = llama_session.respond(line, tool_context)
-                show_final_response(console, final_response, plan.commands, verbose=ui_verbose)
+                if ui_streaming:
+                    # Streaming mode: display tokens as they arrive
+                    if ui_verbose:
+                        console.print(Text("[Thinking] Generating response…", style="cyan"))
+                    if status_cm:
+                        status_cm.__exit__(None, None, None)
+                        status_cm = None
+                    show_streaming_response(
+                        console, llama_session, line, tool_context, plan.commands, verbose=ui_verbose
+                    )
+                else:
+                    # Blocking mode: wait for full response
+                    status.update("[cyan]Generating response…")
+                    if ui_verbose:
+                        console.print(Text("[Thinking] Drafting final response…", style="cyan"))
+                    final_response = llama_session.respond(line, tool_context)
+                    show_final_response(console, final_response, plan.commands, verbose=ui_verbose)
             else:
                 status.update("[cyan]Generating response…")
                 if ui_verbose:
@@ -427,3 +460,42 @@ def show_final_response(
             summary = ", ".join(f"/{cmd}" for cmd in commands_run)
             console.print(f"[tools] {summary}")
         console.print()
+
+
+def show_streaming_response(
+    console: Console,
+    llama_session: LlamaSession,
+    user_prompt: str,
+    tool_context: str,
+    commands_run: List[str],
+    *,
+    verbose: bool = True,
+) -> str:
+    """Stream the response token by token and return the final coerced response."""
+
+    if verbose:
+        console.print()
+        console.print(Text("[Ember]", style="bold cyan"), end="")
+
+    final_response = ""
+    first_token = True
+
+    for token, full_response in llama_session.respond_streaming(user_prompt, tool_context):
+        if full_response is not None:
+            # Last yield contains the coerced full response
+            final_response = full_response
+        elif token:
+            if first_token:
+                console.print()  # Start new line after header
+                first_token = False
+            console.print(token, end="")
+
+    console.print()  # End the streaming line
+
+    if verbose and commands_run:
+        console.print("\n[Tools]")
+        for cmd in commands_run:
+            console.print(f"- /{cmd}")
+
+    console.print()
+    return final_response

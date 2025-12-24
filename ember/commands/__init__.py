@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from .agents import COMMAND as AGENTS_COMMAND
 from .config import COMMAND as CONFIG_COMMAND
+from .export import COMMAND as EXPORT_COMMAND
 from .help import COMMAND as HELP_COMMAND
+from .history import COMMAND as HISTORY_COMMAND
 from .man import COMMAND as MAN_COMMAND
 from .model import COMMAND as MODEL_COMMAND
 from .status import COMMAND as STATUS_COMMAND
@@ -15,6 +17,8 @@ COMMANDS = [
     HELP_COMMAND,
     AGENTS_COMMAND,
     CONFIG_COMMAND,
+    EXPORT_COMMAND,
+    HISTORY_COMMAND,
     MAN_COMMAND,
     MODEL_COMMAND,
     UPDATE_COMMAND,

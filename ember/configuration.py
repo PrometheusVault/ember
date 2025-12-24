@@ -47,6 +47,8 @@ CONFIG_SCHEMA: SchemaSpec = {
         "type": dict,
         "schema": {
             "level": {"type": str, "default": "INFO"},
+            "structured": {"type": bool, "default": True},
+            "structured_path": {"type": str, "default": "logs/agents/core.jsonl"},
         },
         "default": {},
     },
@@ -54,6 +56,7 @@ CONFIG_SCHEMA: SchemaSpec = {
         "type": dict,
         "schema": {
             "verbose": {"type": bool, "default": True},
+            "streaming": {"type": bool, "default": True},
         },
         "default": {},
     },
@@ -150,6 +153,38 @@ CONFIG_SCHEMA: SchemaSpec = {
                 "default_factory": lambda: list(DEFAULT_UPDATE_BRANCHES),
             },
             "fetch": {"type": bool, "default": False},
+        },
+        "default": {},
+    },
+    "health": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": True},
+            "cpu_temp_warning": {"type": (int, float), "default": 70.0},
+            "cpu_temp_critical": {"type": (int, float), "default": 80.0},
+            "memory_warning_percent": {"type": (int, float), "default": 80.0},
+            "disk_warning_percent": {"type": (int, float), "default": 85.0},
+            "check_paths": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: ["/"],
+            },
+        },
+        "default": {},
+    },
+    "api": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": False},
+            "host": {"type": str, "default": "127.0.0.1"},
+            "port": {"type": int, "default": 8000},
+            "api_key": {"type": str, "default": ""},
+            "cors_origins": {
+                "type": list,
+                "item_type": str,
+                "default_factory": list,
+            },
+            "rate_limit": {"type": int, "default": 60},
         },
         "default": {},
     },

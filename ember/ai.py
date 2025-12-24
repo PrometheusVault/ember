@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 import re
 from textwrap import dedent
-from typing import Iterable, List, Optional, Sequence, Set
+from typing import Generator, Iterable, List, Optional, Sequence, Set, Tuple
 
 try:  # pragma: no cover - optional dependency in some test environments
     from llama_cpp import Llama
@@ -355,6 +355,60 @@ class LlamaSession:
             return self._coerce_operator_reply(raw)
         except LlamaInvocationError as exc:
             return f"[llama.cpp error] {exc}"
+
+    def respond_streaming(
+        self, user_prompt: str, tool_outputs: str
+    ) -> Generator[Tuple[str, Optional[str]], None, None]:
+        """Stream the final conversational response token by token.
+
+        Yields tuples of (token, full_response). The full_response is None
+        during streaming and contains the final coerced response on the last yield.
+        """
+        prompt = self._compose_responder_prompt(user_prompt, tool_outputs)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("[responder prompt]\n%s", prompt)
+
+        buffer: List[str] = []
+        try:
+            for token in self._run_llama_streaming(prompt, max_tokens=self.responder_max_tokens):
+                buffer.append(token)
+                yield (token, None)
+        except LlamaInvocationError as exc:
+            yield (f"[llama.cpp error] {exc}", f"[llama.cpp error] {exc}")
+            return
+
+        # After streaming completes, yield the coerced full response
+        raw_response = "".join(buffer)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("[responder raw]\n%s", raw_response)
+        final_response = self._coerce_operator_reply(raw_response)
+        yield ("", final_response)
+
+    def _run_llama_streaming(
+        self, prompt: str, *, max_tokens: Optional[int] = None
+    ) -> Generator[str, None, None]:
+        """Invoke llama.cpp with streaming and yield tokens."""
+        client = self._ensure_client()
+
+        try:
+            completion_stream = client.create_completion(
+                prompt=prompt,
+                max_tokens=max_tokens or self.max_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                stream=True,
+            )
+
+            for chunk in completion_stream:
+                if chunk and "choices" in chunk and chunk["choices"]:
+                    text = chunk["choices"][0].get("text", "")
+                    if text:
+                        yield text
+
+        except Exception as exc:
+            raise LlamaInvocationError(str(exc)) from exc
+
+        logger.debug("llama streaming completed")
 
     def _compose_planner_prompt(self, user_prompt: str) -> str:
         """Render the planning prompt fed into llama.cpp."""
