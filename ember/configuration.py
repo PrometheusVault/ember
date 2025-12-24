@@ -188,6 +188,23 @@ CONFIG_SCHEMA: SchemaSpec = {
         },
         "default": {},
     },
+    "rag": {
+        "type": dict,
+        "schema": {
+            "enabled": {"type": bool, "default": False},
+            "embedding_model": {"type": str, "default": "all-MiniLM-L6-v2"},
+            "chunk_size": {"type": int, "default": 512},
+            "chunk_overlap": {"type": int, "default": 50},
+            "top_k": {"type": int, "default": 3},
+            "db_path": {"type": str, "default": "state/rag.db"},
+            "index_dirs": {
+                "type": list,
+                "item_type": str,
+                "default_factory": lambda: ["library", "reference", "docs"],
+            },
+        },
+        "default": {},
+    },
 }
 
 

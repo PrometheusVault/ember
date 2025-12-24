@@ -5,6 +5,7 @@ from .health import run_health_agent
 from .network import run_network_agent
 from .plugin_loader import run_plugin_agent
 from .provision import run_provision_agent
+from .rag import run_rag_agent
 from .registry import AgentDefinition, AgentRegistry
 from .test_runner import run_test_agent
 from .toolchain import run_toolchain_agent
@@ -79,6 +80,15 @@ REGISTRY.register(
         handler=run_health_agent,
         triggers=("bootstrap",),
         requires_ready=False,
+    )
+)
+REGISTRY.register(
+    AgentDefinition(
+        name="rag.agent",
+        description="Index vault documents into the RAG vector store.",
+        handler=run_rag_agent,
+        triggers=("bootstrap",),
+        default_enabled=False,
     )
 )
 
