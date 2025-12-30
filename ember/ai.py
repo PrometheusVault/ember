@@ -257,10 +257,10 @@ class LlamaSession:
 
     model_path: Path = field(default_factory=_default_model_path)
     timeout_sec: float = float(os.environ.get("LLAMA_CPP_TIMEOUT", "120"))
-    max_tokens: int = int(os.environ.get("LLAMA_CPP_MAX_TOKENS", "512"))
+    max_tokens: int = int(os.environ.get("LLAMA_CPP_MAX_TOKENS", "1024"))
     temperature: float = float(os.environ.get("LLAMA_CPP_TEMPERATURE", "0.2"))
     top_p: float = float(os.environ.get("LLAMA_CPP_TOP_P", "0.95"))
-    n_ctx: int = _env_int("LLAMA_CPP_CTX", 2048)
+    n_ctx: int = _env_int("LLAMA_CPP_CTX", 4096)
     n_threads: int = _env_int("LLAMA_CPP_THREADS", os.cpu_count() or 2)
     n_batch: int = _env_int("LLAMA_CPP_BATCH", 128)
     planner_max_tokens: int = field(default_factory=lambda: _env_int("LLAMA_CPP_PLANNER_TOKENS", 0))

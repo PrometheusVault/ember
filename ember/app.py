@@ -471,7 +471,10 @@ def show_streaming_response(
     *,
     verbose: bool = True,
 ) -> str:
-    """Stream the response token by token and return the final coerced response."""
+    """Stream the response token by token and return the final coerced response.
+
+    Implements real-time deduplication to prevent repeated lines from displaying.
+    """
 
     if verbose:
         console.print()
@@ -479,6 +482,32 @@ def show_streaming_response(
 
     final_response = ""
     first_token = True
+
+    # Real-time deduplication state
+    seen_lines: set[str] = set()
+    current_line_buffer: List[str] = []
+    pending_newlines = 0  # Track newlines to print after confirming non-duplicate
+
+    def _flush_line() -> bool:
+        """Flush current line buffer if not a duplicate. Returns True if printed."""
+        nonlocal pending_newlines
+        if not current_line_buffer:
+            return False
+        line = "".join(current_line_buffer)
+        normalized = line.strip()
+        current_line_buffer.clear()
+        # Skip duplicate non-empty lines
+        if normalized and normalized in seen_lines:
+            pending_newlines = 0  # Don't print newline for skipped duplicate
+            return False
+        if normalized:
+            seen_lines.add(normalized)
+        # Print any pending newlines then the line content
+        for _ in range(pending_newlines):
+            console.print()
+        pending_newlines = 0
+        console.print(line, end="")
+        return True
 
     for token, full_response in llama_session.respond_streaming(user_prompt, tool_context):
         if full_response is not None:
@@ -488,8 +517,17 @@ def show_streaming_response(
             if first_token:
                 console.print()  # Start new line after header
                 first_token = False
-            console.print(token, end="")
 
+            # Process token character by character to handle newlines
+            for char in token:
+                if char == "\n":
+                    _flush_line()
+                    pending_newlines += 1
+                else:
+                    current_line_buffer.append(char)
+
+    # Flush any remaining content in the buffer
+    _flush_line()
     console.print()  # End the streaming line
 
     if verbose and commands_run:
